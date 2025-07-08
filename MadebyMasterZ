@@ -20,10 +20,24 @@ local Tabs = {
 
 local GroupBox = Tabs.Main:AddLeftGroupbox("Toggle Section")
 
--- Variabel loop autofarm
+-- Variabel kontrol loop
 local autofarmRadiology = false
 
--- Fungsi utama
+-- Fungsi mencari RadiologyRoom1 yang memiliki Part berwarna biru
+local function findBlueRoom()
+    for _, room in pairs(workspace.RadiologyRooms:GetChildren()) do
+        if room.Name == "RadiologyRoom1" and room:IsA("Model") then
+            for _, part in ipairs(room:GetDescendants()) do
+                if part:IsA("BasePart") and part.BrickColor == BrickColor.Blue() then
+                    return room
+                end
+            end
+        end
+    end
+    return nil
+end
+
+-- Fungsi utama loop autofarm
 local function startRadiologyLoop()
     local TweenService = game:GetService("TweenService")
     local Players = game:GetService("Players")
@@ -32,6 +46,7 @@ local function startRadiologyLoop()
     local hrp = char:WaitForChild("HumanoidRootPart")
 
     local function tweenTo(part)
+        if not part then return end
         local tween = TweenService:Create(hrp, TweenInfo.new(1, Enum.EasingStyle.Linear), {
             CFrame = part.CFrame + Vector3.new(0, 3, 0)
         })
@@ -40,23 +55,11 @@ local function startRadiologyLoop()
     end
 
     while autofarmRadiology do
-        -- Cari room biru
-        local targetRoom
-        for _, room in pairs(workspace.RadiologyRooms:GetChildren()) do
-            if room.Name == "RadiologyRoom1" then
-                local primary = room.PrimaryPart or room:FindFirstChildWhichIsA("BasePart")
-                if primary and primary.BrickColor == BrickColor.Blue() then
-                    targetRoom = room
-                    break
-                end
-            end
-        end
-
-        if not targetRoom then warn("Tidak ada ruang biru ditemukan.") wait(2) continue end
+        local targetRoom = findBlueRoom()
+        if not targetRoom then warn("Tidak ada ruangan biru ditemukan.") wait(2) continue end
 
         -- Step 1: ClickDetector
         local machine = targetRoom:FindFirstChild("X-Ray (with CXR and table) Machine")
-        local clicked = false
         if machine then
             for _, part in ipairs(machine["X-Ray Machine"]:GetDescendants()) do
                 if part:IsA("ClickDetector") then
@@ -64,14 +67,12 @@ local function startRadiologyLoop()
                         pcall(function() fireclickdetector(part) end)
                         wait(0.5)
                     end
-                    clicked = true
                     break
                 end
             end
         end
-        if not clicked then warn("ClickDetector tidak ditemukan.") end
 
-        -- Step 2: Tunggu X-Ray Button ProximityPrompt enable
+        -- Step 2: Tunggu ProximityPrompt pada X-Ray Button
         local xrayBtnPrompt = targetRoom["X-Ray Button"]:FindFirstChildWhichIsA("ProximityPrompt", true)
         repeat wait() until not autofarmRadiology or (xrayBtnPrompt and xrayBtnPrompt.Enabled)
         if not autofarmRadiology then break end
@@ -84,7 +85,7 @@ local function startRadiologyLoop()
             if prompt then fireproximityprompt(prompt) end
         end
 
-        -- Step 4: Cari Attachment dengan ProximityPrompt
+        -- Step 4: Attachment dengan ProximityPrompt
         for _, desc in ipairs(targetRoom:GetDescendants()) do
             if desc:IsA("Attachment") and desc:FindFirstChildWhichIsA("ProximityPrompt") then
                 fireproximityprompt(desc:FindFirstChildWhichIsA("ProximityPrompt"))
@@ -92,15 +93,15 @@ local function startRadiologyLoop()
             end
         end
 
-        -- Step 5: Equip Wedge
+        -- Step 5: Equip Tool Wedge
         local tool = player.Backpack:FindFirstChild("Wedge")
         if tool then tool.Parent = char end
 
         -- Step 6: Tween ke Torso & Prox
         local torso = targetRoom:FindFirstChild("PatientRadiology", true):FindFirstChild("Torso")
-        local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt")
+        local torsoPrompt = torso and torso:FindFirstChildWhichIsA("ProximityPrompt")
         tweenTo(torso)
-        fireproximityprompt(torsoPrompt)
+        if torsoPrompt then fireproximityprompt(torsoPrompt) end
 
         -- Step 7: Tween ke X-Ray Button & Prox
         tweenTo(xrayBtnPrompt.Parent)
@@ -112,21 +113,21 @@ local function startRadiologyLoop()
 
         -- Step 9: Kembali ke Torso & Prox
         tweenTo(torso)
-        fireproximityprompt(torsoPrompt)
+        if torsoPrompt then fireproximityprompt(torsoPrompt) end
 
         -- Step 10: Trigger Sheet di X-Ray Table
-        local sheetPrompt = machine["X-Ray Table"]["Table"]["Sheet"]:FindFirstChildWhichIsA("ProximityPrompt")
-        fireproximityprompt(sheetPrompt)
+        local sheetPrompt = machine and machine["X-Ray Table"]["Table"]["Sheet"]:FindFirstChildWhichIsA("ProximityPrompt")
+        if sheetPrompt then fireproximityprompt(sheetPrompt) end
 
         -- Step 11: Kembali ke Torso & Prox
         tweenTo(torso)
-        fireproximityprompt(torsoPrompt)
+        if torsoPrompt then fireproximityprompt(torsoPrompt) end
 
         wait(2)
     end
 end
 
--- Toggle untuk mengaktifkan autofarm radiologi
+-- Toggle GUI untuk mengaktifkan/menonaktifkan autofarm radiology
 GroupBox:AddToggle("RadiologyToggle", {
     Text = "Autofarm Radiology",
     Default = false,
@@ -139,7 +140,7 @@ GroupBox:AddToggle("RadiologyToggle", {
     end
 })
 
--- Setup Theme dan Save
+-- Setup Theme dan Save Manager
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
