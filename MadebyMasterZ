@@ -20,9 +20,9 @@ local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 local autofarmRadiology = false
 
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm Radiology (Wedgera ➜ Attachment)",
+    Text = "Autofarm Radiology Full",
     Default = false,
-    Tooltip = "Tween dan trigger urutan Radiology Room1",
+    Tooltip = "Wedgera ➜ Click ➜ Prompt ➜ Computer ➜ Attachment",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -91,53 +91,45 @@ GroupBox:AddToggle("RadiologyToggle", {
                     pcall(function()
                         fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
                     end)
-                    wait(0.5)
+                    task.wait(0.5)
                 end
 
                 if not autofarmRadiology then return end
                 print("✅ Prompt aktif!")
 
-                -- Cari dan tween ke radiologycomputer2
+                -- Tween ke radiologycomputer2 dan trigger prompt
                 local computer = room:FindFirstChild("radiologycomputer2")
                 if not computer then warn("radiologycomputer2 tidak ditemukan.") return end
-
                 tweenTo(computer)
-
-                -- Trigger ProximityPrompt di dalamnya
                 local compPrompt = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if compPrompt then
                     fireproximityprompt(compPrompt)
-                    print("✅ ProximityPrompt di radiologycomputer2 berhasil di-trigger.")
+                    print("✅ Prompt di radiologycomputer2 berhasil di-trigger.")
                 else
                     warn("ProximityPrompt di radiologycomputer2 tidak ditemukan.")
                 end
 
-                if not autofarmRadiology then return end
-
-                -- [STEP: Attachment Trigger]
-                local targetPrompt = nil
-                for _, part in ipairs(room:GetDescendants()) do
-                    if part:IsA("Attachment") then
-                        local prox = part:FindFirstChildWhichIsA("ProximityPrompt")
-                        if prox then
-                            targetPrompt = prox
-                            break
+                -- Cari Part yang memiliki Attachment + ProximityPrompt
+                local foundPartWithPrompt = nil
+                for _, part in ipairs(room:GetChildren()) do
+                    if part:IsA("BasePart") then
+                        local attachment = part:FindFirstChildWhichIsA("Attachment", true)
+                        if attachment then
+                            local attPrompt = attachment:FindFirstChildWhichIsA("ProximityPrompt", true)
+                            if attPrompt then
+                                foundPartWithPrompt = part
+                                tweenTo(part)
+                                wait(0.3)
+                                fireproximityprompt(attPrompt)
+                                print("✅ Berhasil trigger ProximityPrompt dari Attachment.")
+                                break
+                            end
                         end
                     end
                 end
 
-                if targetPrompt then
-                    local parentPart = targetPrompt.Parent and targetPrompt.Parent.Parent
-                    if parentPart and parentPart:IsA("BasePart") then
-                        tweenTo(parentPart)
-                        wait(0.5)
-                        fireproximityprompt(targetPrompt)
-                        print("✅ ProximityPrompt dari Attachment berhasil di-trigger.")
-                    else
-                        warn("Tidak bisa tween ke Attachment karena tidak menemukan Part induknya.")
-                    end
-                else
-                    warn("Attachment dengan ProximityPrompt tidak ditemukan.")
+                if not foundPartWithPrompt then
+                    warn("❌ Tidak menemukan Part dengan Attachment + ProximityPrompt.")
                 end
             end)
         else
