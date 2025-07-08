@@ -52,17 +52,29 @@ GroupBox:AddToggle("RadiologyToggle", {
 
                 if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
-                -- Cari Part bernama "Wedgera"
+                -- Teleport ke Wedgera
                 local wedgera = room:FindFirstChild("Wedgera", true)
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
-
                 tweenTo(wedgera)
 
-                -- Trigger ClickDetector di dalam "Wedgera"
-                local detector = wedgera:FindFirstChildWhichIsA("ClickDetector", true)
-                if not detector then warn("ClickDetector di Wedgera tidak ditemukan.") return end
+                -- Cari ClickDetector di: X-Ray (with CXR and table) Machine > X-Ray Machine
+                local detector
+                local machine = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
+                if machine then
+                    local xray = machine:FindFirstChild("X-Ray Machine")
+                    if xray then
+                        for _, part in ipairs(xray:GetDescendants()) do
+                            if part:IsA("ClickDetector") then
+                                detector = part
+                                break
+                            end
+                        end
+                    end
+                end
 
-                -- Ulang trigger sampai ProximityPrompt aktif
+                if not detector then warn("ClickDetector tidak ditemukan di X-Ray Machine.") return end
+
+                -- Cari ProximityPrompt di X-Ray Button
                 local prompt
                 local xrayBtn = room:FindFirstChild("X-Ray Button")
                 if xrayBtn then
@@ -77,6 +89,7 @@ GroupBox:AddToggle("RadiologyToggle", {
 
                 if not prompt then warn("Prompt tidak ditemukan di X-Ray Button.") return end
 
+                -- Ulangi trigger click sampai prompt aktif
                 while autofarmRadiology and not prompt.Enabled do
                     pcall(function()
                         fireclickdetector(detector)
@@ -85,7 +98,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
 
                 if prompt.Enabled then
-                    print("✅ ProximityPrompt aktif! Selesai.")
+                    print("✅ ProximityPrompt aktif!")
                 end
             end)
         end
