@@ -21,6 +21,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
+-- Utility
 local p = game.Players.LocalPlayer
 local ts = game:GetService("TweenService")
 
@@ -49,136 +50,139 @@ local function unequip()
 	end
 end
 
--- Groupbox Toggle
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main")
+-- Script 1: Computer & Printer
+local function AutoComputerPrinter()
+	while Toggles.AutoFarm.Value do
+		task.wait(0.5)
+		pcall(function()
+			for _, m in pairs(workspace:GetChildren()) do
+				local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
+				if c then
+					tp(c.Position + Vector3.new(0, 2, 0))
+					fire(c:FindFirstChildWhichIsA("ProximityPrompt", true))
+					break
+				end
+			end
+
+			local pr = workspace:FindFirstChild("Printerpharmacy")
+			if pr and pr:FindFirstChild("Union2") then
+				local u = pr.Union2
+				tp(u.Position + Vector3.new(0, 2, 0))
+				fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
+			end
+		end)
+	end
+end
+
+-- Script 2: Grab Meds dari FSAtchciken
+local function AutoGrabMeds()
+	while Toggles.AutoFarm.Value do
+		task.wait(0.5)
+		pcall(function()
+			local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
+			local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
+			if fs then
+				for _, t in pairs(p.Backpack:GetChildren()) do
+					if t:IsA("Tool") and t.Name:match("Order") then
+						equip(t)
+						for _, a in pairs(fs:GetDescendants()) do
+							if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
+								for _, pp in pairs(a:GetChildren()) do
+									if pp:IsA("ProximityPrompt") and pp.ActionText then
+										local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
+										if t.Name == m .. " Order" then
+											tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
+											fire(pp)
+											repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
+											unequip()
+											break
+										end
+									end
+								end
+							end
+						end
+						break
+					end
+				end
+			end
+		end)
+	end
+end
+
+-- Script 3: Submit Medication ke Front Desk
+local function AutoSubmitMeds()
+	while Toggles.AutoFarm.Value do
+		task.wait(1)
+		pcall(function()
+			local med = p.Backpack:FindFirstChild("Medication")
+			if med then
+				equip(med)
+				local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
+				local tray = desk and desk:FindFirstChild("Pill Counting Tray")
+				local base = tray and tray:FindFirstChild("Base")
+				if base then
+					for _, u in pairs(base:GetChildren()) do
+						local pp = u:IsA("BasePart") and u:FindFirstChildWhichIsA("ProximityPrompt", true)
+						if pp then
+							tp(u.Position + Vector3.new(0, 2, 0))
+							fire(pp)
+							break
+						end
+					end
+				end
+			end
+		end)
+	end
+end
+
+-- Script 4: Kirim lewat TubeSystem
+local function AutoTubeSystem()
+	while Toggles.AutoFarm.Value do
+		task.wait(1)
+		pcall(function()
+			local tool = p.Backpack:FindFirstChild("Meds")
+			if not tool then return end
+			equip(tool)
+
+			local nearestTube, shortest = nil, math.huge
+			local char = p.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart")
+			if not hrp then return end
+
+			for _, t in pairs(workspace:GetChildren()) do
+				if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
+					local dist = (t.Union.Position - hrp.Position).Magnitude
+					if dist < shortest then
+						shortest = dist
+						nearestTube = t
+					end
+				end
+			end
+
+			if nearestTube then
+				local union = nearestTube:FindFirstChild("Union")
+				if union then
+					tp(union.Position + Vector3.new(0, 2, 0))
+					fire(union:FindFirstChildWhichIsA("ProximityPrompt", true))
+				end
+			end
+		end)
+	end
+end
+
+-- Toggle UI
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Auto Farm")
 
 LeftGroupBox:AddToggle("AutoFarm", {
 	Text = "Auto Farm",
 	Default = false,
-	Tooltip = "Menjalankan keempat autofarm sekaligus",
+	Tooltip = "Menjalankan semua proses farm otomatis",
 	Callback = function(Value)
 		if Value then
-			-- Script 1: Computer & Printer
-			task.spawn(function()
-				while Toggles.AutoFarm.Value do
-					task.wait(0.5)
-					pcall(function()
-						for _, m in pairs(workspace:GetChildren()) do
-							local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
-							if c then
-								tp(c.Position + Vector3.new(0, 2, 0))
-								fire(c:FindFirstChildWhichIsA("ProximityPrompt", true))
-								break
-							end
-						end
-
-						local pr = workspace:FindFirstChild("Printerpharmacy")
-						if pr and pr:FindFirstChild("Union2") then
-							local u = pr.Union2
-							tp(u.Position + Vector3.new(0, 2, 0))
-							fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
-						end
-					end)
-				end
-			end)
-
-			-- Script 2: Grab Meds
-			task.spawn(function()
-				while Toggles.AutoFarm.Value do
-					task.wait(0.5)
-					pcall(function()
-						local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
-						local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
-						if fs then
-							for _, t in pairs(p.Backpack:GetChildren()) do
-								if t:IsA("Tool") and t.Name:match("Order") then
-									equip(t)
-									for _, a in pairs(fs:GetDescendants()) do
-										if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
-											for _, pp in pairs(a:GetChildren()) do
-												if pp:IsA("ProximityPrompt") and pp.ActionText then
-													local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
-													if t.Name == m .. " Order" then
-														tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
-														fire(pp)
-														repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
-														unequip()
-														break
-													end
-												end
-											end
-										end
-									end
-									break
-								end
-							end
-						end
-					end)
-				end
-			end)
-
-			-- Script 3: Submit Medication
-			task.spawn(function()
-				while Toggles.AutoFarm.Value do
-					task.wait(1)
-					pcall(function()
-						local med = p.Backpack:FindFirstChild("Medication")
-						if med then
-							equip(med)
-							local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
-							local tray = desk and desk:FindFirstChild("Pill Counting Tray")
-							local base = tray and tray:FindFirstChild("Base")
-							if base then
-								for _, u in pairs(base:GetChildren()) do
-									local pp = u:IsA("BasePart") and u:FindFirstChildWhichIsA("ProximityPrompt", true)
-									if pp then
-										tp(u.Position + Vector3.new(0, 2, 0))
-										fire(pp)
-										break
-									end
-								end
-							end
-						end
-					end)
-				end
-			end)
-
-			-- Script 4: Tube System
-			task.spawn(function()
-				while Toggles.AutoFarm.Value do
-					task.wait(1)
-					pcall(function()
-						local tool = p.Backpack:FindFirstChild("Meds")
-						if not tool then return end
-						equip(tool)
-
-						local nearestTube = nil
-						local shortest = math.huge
-						local char = p.Character
-						if not (char and char:FindFirstChild("HumanoidRootPart")) then return end
-						local hrp = char.HumanoidRootPart
-
-						for _, t in pairs(workspace:GetChildren()) do
-							if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
-								local dist = (t.Union.Position - hrp.Position).Magnitude
-								if dist < shortest then
-									shortest = dist
-									nearestTube = t
-								end
-							end
-						end
-
-						if nearestTube then
-							local union = nearestTube:FindFirstChild("Union")
-							if union then
-								tp(union.Position + Vector3.new(0, 2, 0))
-								local pp = union:FindFirstChildWhichIsA("ProximityPrompt", true)
-								fire(pp)
-							end
-						end
-					end)
-				end
-			end)
+			task.spawn(AutoComputerPrinter)
+			task.spawn(AutoGrabMeds)
+			task.spawn(AutoSubmitMeds)
+			task.spawn(AutoTubeSystem)
 		end
 	end,
 })
