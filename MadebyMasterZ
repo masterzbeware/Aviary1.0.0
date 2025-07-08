@@ -41,6 +41,29 @@ GroupBox:AddToggle("RadiologyToggle", {
                     tween.Completed:Wait()
                 end
 
+                local function equipCleanSheet()
+                    local toolName = "clean sheet"
+                    local tool = player.Backpack:FindFirstChild(toolName)
+
+                    if not tool then
+                        repeat
+                            tool = player.Backpack:FindFirstChild(toolName)
+                            task.wait(0.5)
+                        until tool or not autofarmRadiology
+                    end
+
+                    if tool and player.Character then
+                        local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+                        if humanoid then
+                            humanoid:EquipTool(tool)
+                            print("✅ Tool 'clean sheet' berhasil di-equip otomatis.")
+                        end
+                    else
+                        warn("❌ Tool 'clean sheet' tidak ditemukan atau gagal equip.")
+                    end
+                end
+
+                -- Temukan RadiologyRoom1
                 local room
                 for _, r in ipairs(workspace:WaitForChild("RadiologyRooms"):GetChildren()) do
                     if r:IsA("Model") and r.Name == "RadiologyRoom1" then
@@ -196,7 +219,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                     if sheetPrompt then fireproximityprompt(sheetPrompt) end
                 end
 
-                -- Step 13: krim2
+                -- Step 13: krim2 → equip clean sheet
                 local krim2 = room:FindFirstChild("Closet", true)
                 if krim2 then krim2 = krim2:FindFirstChild("krim2") end
                 if krim2 then
@@ -210,13 +233,9 @@ GroupBox:AddToggle("RadiologyToggle", {
                     end
                 end
 
-                -- Equip "clean sheet"
-                local cleanSheet = player.Backpack:FindFirstChild("clean sheet")
-                if cleanSheet then
-                    player.Character.Humanoid:EquipTool(cleanSheet)
-                end
+                equipCleanSheet()
 
-                -- Step 14: Trigger sheet lagi
+                -- Step 14: trigger Sheet lagi
                 if sheet then
                     tweenTo(sheet)
                     local sheetPrompt2 = sheet:FindFirstChildWhichIsA("ProximityPrompt", true)
