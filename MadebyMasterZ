@@ -52,13 +52,13 @@ GroupBox:AddToggle("RadiologyToggle", {
                 if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
                 -- Tween ke Wedgera
-                local wedgera = room:FindFirstChild("Wedgera", true)
+                local wedgera = room:FindFirstChild("Wedgera")
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
                 tweenTo(wedgera)
 
-                -- Cari ClickDetector di dalam X-Ray Machine
+                -- Cari ClickDetector di X-Ray Machine
                 local clickPart
-                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
+                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine")
                 if machineRoot then
                     local xrayMachine = machineRoot:FindFirstChild("X-Ray Machine")
                     if xrayMachine then
@@ -97,14 +97,14 @@ GroupBox:AddToggle("RadiologyToggle", {
                 if not autofarmRadiology then return end
                 print("✅ Prompt aktif!")
 
-                -- Cari Union "radiologycomputer2"
-                local computer = room:FindFirstChild("radiologycomputer2", true)
+                -- Langsung ambil radiologycomputer2 dari dalam room
+                local computer = room:FindFirstChild("radiologycomputer2")
                 if not computer or not computer:IsA("UnionOperation") then
-                    warn("radiologycomputer2 (Union) tidak ditemukan.")
+                    warn("radiologycomputer2 tidak ditemukan atau bukan Union.")
                     return
                 end
 
-                -- Teleport ke computer
+                -- Tween ke radiologycomputer2
                 tweenTo(computer)
 
                 -- Trigger ProximityPrompt di dalamnya
