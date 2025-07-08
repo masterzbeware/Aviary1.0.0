@@ -23,7 +23,6 @@ local Tabs = {
 
 local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main")
 
--- Utility Functions
 local p = game.Players.LocalPlayer
 local ts = game:GetService("TweenService")
 
@@ -52,17 +51,16 @@ local function unequip()
 	end
 end
 
--- Main Toggle
 LeftGroupBox:AddToggle("AutoFarm", {
 	Text = "Auto Farm",
 	Default = false,
-	Tooltip = "Jalankan urutan autofarm secara rapi",
+	Tooltip = "Urutan autofarm 1x tiap langkah lalu lanjut jika tool berubah",
 	Callback = function(Value)
 		if Value then
 			task.spawn(function()
 				while Toggles.AutoFarm.Value do
 					pcall(function()
-						-- Step 1: Computer
+						-- Step 1: Komputer
 						for _, m in pairs(workspace:GetChildren()) do
 							local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
 							if c then
@@ -71,7 +69,6 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								break
 							end
 						end
-						task.wait(0.2)
 
 						-- Step 2: Printer
 						local pr = workspace:FindFirstChild("Printerpharmacy")
@@ -80,40 +77,44 @@ LeftGroupBox:AddToggle("AutoFarm", {
 							tp(u.Position + Vector3.new(0, 2, 0))
 							fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
 						end
-						task.wait(0.2)
+						repeat task.wait(0.5) until next(p.Backpack:GetChildren()) and table.find(table.concat(table.pack(unpack(p.Backpack:GetChildren())):map(function(t) return t.Name end)), "Order") ~= nil
 
 						-- Step 3: Grab Meds
 						local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
 						local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
 						if fs then
-							for _, t in pairs(p.Backpack:GetChildren()) do
-								if t:IsA("Tool") and t.Name:match("Order") then
-									equip(t)
-									for _, a in pairs(fs:GetDescendants()) do
-										if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
-											for _, pp in pairs(a:GetChildren()) do
-												if pp:IsA("ProximityPrompt") and pp.ActionText then
-													local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
-													if t.Name == m .. " Order" then
-														tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
-														fire(pp)
-														repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
-														unequip()
-														break
+							while true do
+								local foundOrder = false
+								for _, t in pairs(p.Backpack:GetChildren()) do
+									if t:IsA("Tool") and t.Name:match("Order") then
+										foundOrder = true
+										equip(t)
+										for _, a in pairs(fs:GetDescendants()) do
+											if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
+												for _, pp in pairs(a:GetChildren()) do
+													if pp:IsA("ProximityPrompt") and pp.ActionText then
+														local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
+														if t.Name == m .. " Order" then
+															tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
+															fire(pp)
+															repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
+															unequip()
+															break
+														end
 													end
 												end
 											end
-										end
 									end
-									break
 								end
+								if not foundOrder then break end
+								task.wait(0.5)
 							end
 						end
-						task.wait(0.2)
 
 						-- Step 4: Submit Medication
-						local med = p.Backpack:FindFirstChild("Medication")
-						if med then
+						while true do
+							local med = p.Backpack:FindFirstChild("Medication")
+							if not med then break end
 							equip(med)
 							local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
 							local tray = desk and desk:FindFirstChild("Pill Counting Tray")
@@ -128,21 +129,19 @@ LeftGroupBox:AddToggle("AutoFarm", {
 									end
 								end
 							end
+							task.wait(1)
 						end
-						task.wait(0.2)
 
-						-- Step 5: Tube System (loop until all "Meds" gone)
+						-- Step 5: Tube System
 						while true do
 							local tool = p.Backpack:FindFirstChild("Meds")
 							if not tool then break end
 							equip(tool)
-
 							local nearestTube = nil
 							local shortest = math.huge
 							local char = p.Character
 							if not (char and char:FindFirstChild("HumanoidRootPart")) then break end
 							local hrp = char.HumanoidRootPart
-
 							for _, t in pairs(workspace:GetChildren()) do
 								if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
 									local dist = (t.Union.Position - hrp.Position).Magnitude
@@ -152,20 +151,13 @@ LeftGroupBox:AddToggle("AutoFarm", {
 									end
 								end
 							end
-
 							if nearestTube then
 								local union = nearestTube:FindFirstChild("Union")
 								if union then
 									tp(union.Position + Vector3.new(0, 2, 0))
-									local pp = union:FindFirstChildWhichIsA("ProximityPrompt", true)
-									fire(pp)
+									fire(union:FindFirstChildWhichIsA("ProximityPrompt", true))
 								end
 							end
-							task.wait(1)
-						end
-
-						-- Tunggu sampai semua "Meds" hilang
-						while p.Backpack:FindFirstChild("Meds") do
 							task.wait(1)
 						end
 					end)
@@ -175,14 +167,11 @@ LeftGroupBox:AddToggle("AutoFarm", {
 	end,
 })
 
--- Theme & Save
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
-
 SaveManager:IgnoreThemeSettings()
 SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
 ThemeManager:SetFolder("MyScriptHub")
 SaveManager:SetFolder("MyScriptHub/specific-game")
 SaveManager:SetSubFolder("specific-place")
