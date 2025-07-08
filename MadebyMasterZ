@@ -26,11 +26,15 @@ local LeftGroupBox = Tabs.Main:AddLeftGroupbox("AutoFarm")
 local p = game.Players.LocalPlayer
 
 local function fire(pp)
-	if pp then fireproximityprompt(pp) end
+	if pp then
+		print("✅ Fire Prompt:", pp:GetFullName())
+		fireproximityprompt(pp)
+	end
 end
 
 local function equip(tool)
 	if tool and not p.Character:FindFirstChild(tool.Name) then
+		print("🎒 Equip Tool:", tool.Name)
 		tool.Parent = p.Character
 	end
 end
@@ -38,6 +42,7 @@ end
 local function unequip()
 	local m = p.Character:FindFirstChild("Medication")
 	if m then
+		print("🧪 Unequip Medication")
 		m.Parent = p.Backpack
 	end
 end
@@ -52,6 +57,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
 				while Toggles.AutoFarm.Value do
 					pcall(function()
 						-- Step 1: Computer
+						print("🖥️ Step 1: Trigger Computer")
 						for _, m in pairs(workspace:GetChildren()) do
 							local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
 							if c then
@@ -62,6 +68,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
 						task.wait(0.2)
 
 						-- Step 2: Printer
+						print("🖨️ Step 2: Trigger Printer")
 						local pr = workspace:FindFirstChild("Printerpharmacy")
 						if pr and pr:FindFirstChild("Union2") then
 							fire(pr.Union2:FindFirstChildWhichIsA("ProximityPrompt", true))
@@ -69,6 +76,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
 						task.wait(0.2)
 
 						-- Step 3: Grab Meds
+						print("💊 Step 3: Grab Meds")
 						local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
 						local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
 						local grabbed = false
@@ -82,6 +90,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
 												if pp:IsA("ProximityPrompt") and pp.ActionText then
 													local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
 													if t.Name == m .. " Order" then
+														print("➡️  Matching Grab:", m)
 														fire(pp)
 														repeat task.wait(0.1) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
 														unequip()
@@ -97,10 +106,14 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								end
 							end
 						end
-						if not grabbed then return end
+						if not grabbed then
+							print("⚠️ Order tool tidak ditemukan atau Grab gagal")
+							return
+						end
 						task.wait(0.2)
 
 						-- Step 4: Submit Medication
+						print("📦 Step 4: Submit Medication")
 						local submitted = false
 						local med = p.Backpack:FindFirstChild("Medication")
 						if med then
@@ -119,10 +132,14 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								end
 							end
 						end
-						if not submitted then return end
+						if not submitted then
+							print("⚠️ Medication belum ada, submit gagal")
+							return
+						end
 						task.wait(0.2)
 
 						-- Step 5: Tube System
+						print("📮 Step 5: Tube System")
 						local meds = p.Backpack:FindFirstChild("Meds")
 						if meds then
 							equip(meds)
@@ -135,14 +152,19 @@ LeftGroupBox:AddToggle("AutoFarm", {
 									end
 								end
 							end
+						else
+							print("⚠️ Meds tidak ditemukan untuk Tube System")
 						end
 
-						-- Loop
+						-- Step 6: Loop Ulang
+						print("🔁 Farming loop selesai, ulangi...")
 						task.wait(0.2)
 					end)
 					task.wait(0.1)
 				end
 			end)
+		else
+			print("🛑 AutoFarm dimatikan.")
 		end
 	end,
 })
