@@ -6,11 +6,8 @@ local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 local Options = Library.Options
 local Toggles = Library.Toggles
 
-Library.ForceCheckbox = false
-Library.ShowToggleFrameInKeybinds = true
-
 local Window = Library:CreateWindow({
-    Title = "Made by MasterZ",
+    Title = "MasterZ Toggle GUI",
     Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
@@ -18,162 +15,131 @@ local Window = Library:CreateWindow({
 })
 
 local Tabs = {
-    Main = Window:AddTab("Main", "user"),
+    Main = Window:AddTab("Main", "toggle-left"),
 }
 
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("AutoFarm")
+local GroupBox = Tabs.Main:AddLeftGroupbox("Toggle Section")
 
-local p = game.Players.LocalPlayer
-local ts = game:GetService("TweenService")
+-- Variabel loop autofarm
+local autofarmRadiology = false
 
-local function tp(pos)
-    local h = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-    if h then
-        ts:Create(h, TweenInfo.new(1), {CFrame = CFrame.new(pos)}):Play()
-        task.wait(1.2)
+-- Fungsi utama
+local function startRadiologyLoop()
+    local TweenService = game:GetService("TweenService")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+
+    local function tweenTo(part)
+        local tween = TweenService:Create(hrp, TweenInfo.new(1, Enum.EasingStyle.Linear), {
+            CFrame = part.CFrame + Vector3.new(0, 3, 0)
+        })
+        tween:Play()
+        tween.Completed:Wait()
     end
-end
 
-local function fire(pp)
-    if pp then fireproximityprompt(pp) end
-end
-
-local function equip(tool)
-    if tool and not p.Character:FindFirstChild(tool.Name) then
-        tool.Parent = p.Character
-    end
-end
-
-local function unequip()
-    local m = p.Character:FindFirstChild("Medication")
-    if m then
-        m.Parent = p.Backpack
-    end
-end
-
-LeftGroupBox:AddToggle("AutoFarm", {
-    Text = "Auto Farm (Step by Step)",
-    Default = false,
-    Tooltip = "Computer → Printer → Grab → Submit → Tube → Ulang",
-    Callback = function(Value)
-        if Value then
-            task.spawn(function()
-                while Toggles.AutoFarm.Value do
-                    pcall(function()
-                        -- Step 1: Computer
-                        for _, m in pairs(workspace:GetChildren()) do
-                            local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
-                            if c then
-                                tp(c.Position + Vector3.new(0, 2, 0))
-                                fire(c:FindFirstChildWhichIsA("ProximityPrompt", true))
-                                break
-                            end
-                        end
-                        task.wait(0.5)
-
-                        -- Step 2: Printer
-                        local pr = workspace:FindFirstChild("Printerpharmacy")
-                        if pr and pr:FindFirstChild("Union2") then
-                            local u = pr.Union2
-                            tp(u.Position + Vector3.new(0, 2, 0))
-                            fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
-                        end
-                        task.wait(0.5)
-
-                        -- Step 3: Grab Meds
-                        local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
-                        local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
-                        local grabbed = false
-                        if fs then
-                            for _, t in pairs(p.Backpack:GetChildren()) do
-                                if t:IsA("Tool") and t.Name:match("Order") then
-                                    equip(t)
-                                    for _, a in pairs(fs:GetDescendants()) do
-                                        if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
-                                            for _, pp in pairs(a:GetChildren()) do
-                                                if pp:IsA("ProximityPrompt") and pp.ActionText then
-                                                    local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
-                                                    if t.Name == m .. " Order" then
-                                                        tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
-                                                        fire(pp)
-                                                        repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
-                                                        unequip()
-                                                        grabbed = true
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                        end
-                                        if grabbed then break end
-                                    end
-                                    break
-                                end
-                            end
-                        end
-                        if not grabbed then return end
-                        task.wait(0.5)
-
-                        -- Step 4: Submit Medication
-                        local submitted = false
-                        local med = p.Backpack:FindFirstChild("Medication")
-                        if med then
-                            equip(med)
-                            local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
-                            local tray = desk and desk:FindFirstChild("Pill Counting Tray")
-                            local base = tray and tray:FindFirstChild("Base")
-                            if base then
-                                for _, u in pairs(base:GetChildren()) do
-                                    local pp = u:IsA("BasePart") and u:FindFirstChildWhichIsA("ProximityPrompt", true)
-                                    if pp then
-                                        tp(u.Position + Vector3.new(0, 2, 0))
-                                        fire(pp)
-                                        submitted = true
-                                        break
-                                    end
-                                end
-                            end
-                        end
-                        if not submitted then return end
-                        task.wait(0.5)
-
-                        -- Step 5: Tube System
-                        local meds = p.Backpack:FindFirstChild("Meds")
-                        if meds then
-                            equip(meds)
-                            local nearestTube = nil
-                            local shortest = math.huge
-                            local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-                            if hrp then
-                                for _, t in pairs(workspace:GetChildren()) do
-                                    if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
-                                        local dist = (t.Union.Position - hrp.Position).Magnitude
-                                        if dist < shortest then
-                                            shortest = dist
-                                            nearestTube = t
-                                        end
-                                    end
-                                end
-                                if nearestTube then
-                                    local union = nearestTube:FindFirstChild("Union")
-                                    if union then
-                                        tp(union.Position + Vector3.new(0, 2, 0))
-                                        fire(union:FindFirstChildWhichIsA("ProximityPrompt", true))
-                                    end
-                                end
-                            end
-                        end
-
-                        -- Step 6: Ulangi
-                        task.wait(1)
-                    end)
-                    task.wait(0.5)
+    while autofarmRadiology do
+        -- Cari room biru
+        local targetRoom
+        for _, room in pairs(workspace.RadiologyRooms:GetChildren()) do
+            if room.Name == "RadiologyRoom1" then
+                local primary = room.PrimaryPart or room:FindFirstChildWhichIsA("BasePart")
+                if primary and primary.BrickColor == BrickColor.Blue() then
+                    targetRoom = room
+                    break
                 end
-            end)
+            end
         end
-    end,
+
+        if not targetRoom then warn("Tidak ada ruang biru ditemukan.") wait(2) continue end
+
+        -- Step 1: ClickDetector
+        local machine = targetRoom:FindFirstChild("X-Ray (with CXR and table) Machine")
+        local clicked = false
+        if machine then
+            for _, part in ipairs(machine["X-Ray Machine"]:GetDescendants()) do
+                if part:IsA("ClickDetector") then
+                    for _ = 1, 3 do
+                        pcall(function() fireclickdetector(part) end)
+                        wait(0.5)
+                    end
+                    clicked = true
+                    break
+                end
+            end
+        end
+        if not clicked then warn("ClickDetector tidak ditemukan.") end
+
+        -- Step 2: Tunggu X-Ray Button ProximityPrompt enable
+        local xrayBtnPrompt = targetRoom["X-Ray Button"]:FindFirstChildWhichIsA("ProximityPrompt", true)
+        repeat wait() until not autofarmRadiology or (xrayBtnPrompt and xrayBtnPrompt.Enabled)
+        if not autofarmRadiology then break end
+        fireproximityprompt(xrayBtnPrompt)
+
+        -- Step 3: radiologycomputer2
+        local comp = targetRoom:FindFirstChild("radiologycomputer2", true)
+        if comp then
+            local prompt = comp:FindFirstChildWhichIsA("ProximityPrompt", true)
+            if prompt then fireproximityprompt(prompt) end
+        end
+
+        -- Step 4: Cari Attachment dengan ProximityPrompt
+        for _, desc in ipairs(targetRoom:GetDescendants()) do
+            if desc:IsA("Attachment") and desc:FindFirstChildWhichIsA("ProximityPrompt") then
+                fireproximityprompt(desc:FindFirstChildWhichIsA("ProximityPrompt"))
+                break
+            end
+        end
+
+        -- Step 5: Equip Wedge
+        local tool = player.Backpack:FindFirstChild("Wedge")
+        if tool then tool.Parent = char end
+
+        -- Step 6: Tween ke Torso & Prox
+        local torso = targetRoom:FindFirstChild("PatientRadiology", true):FindFirstChild("Torso")
+        local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt")
+        tweenTo(torso)
+        fireproximityprompt(torsoPrompt)
+
+        -- Step 7: Tween ke X-Ray Button & Prox
+        tweenTo(xrayBtnPrompt.Parent)
+        fireproximityprompt(xrayBtnPrompt)
+
+        -- Step 8: Kembali ke Computer & Prox
+        tweenTo(comp)
+        fireproximityprompt(comp:FindFirstChildWhichIsA("ProximityPrompt", true))
+
+        -- Step 9: Kembali ke Torso & Prox
+        tweenTo(torso)
+        fireproximityprompt(torsoPrompt)
+
+        -- Step 10: Trigger Sheet di X-Ray Table
+        local sheetPrompt = machine["X-Ray Table"]["Table"]["Sheet"]:FindFirstChildWhichIsA("ProximityPrompt")
+        fireproximityprompt(sheetPrompt)
+
+        -- Step 11: Kembali ke Torso & Prox
+        tweenTo(torso)
+        fireproximityprompt(torsoPrompt)
+
+        wait(2)
+    end
+end
+
+-- Toggle untuk mengaktifkan autofarm radiologi
+GroupBox:AddToggle("RadiologyToggle", {
+    Text = "Autofarm Radiology",
+    Default = false,
+    Tooltip = "Otomatis menyelesaikan Radiology Room (yang biru)",
+    Callback = function(state)
+        autofarmRadiology = state
+        if state then
+            task.spawn(startRadiologyLoop)
+        end
+    end
 })
 
--- Theme dan Save
+-- Setup Theme dan Save
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
@@ -184,3 +150,5 @@ SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 ThemeManager:SetFolder("MyScriptHub")
 SaveManager:SetFolder("MyScriptHub/specific-game")
 SaveManager:SetSubFolder("specific-place")
+SaveManager:BuildConfigSection(Tabs.Main)
+ThemeManager:ApplyTheme("Mocha")
