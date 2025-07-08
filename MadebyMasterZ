@@ -20,9 +20,9 @@ local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 local autofarmRadiology = false
 
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm Radiology Full",
+    Text = "Autofarm Radiology",
     Default = false,
-    Tooltip = "Wedgera ➜ Click ➜ Prompt ➜ Computer ➜ Attachment ➜ Wedge ➜ Torso",
+    Tooltip = "Wedgera ➜ X-Ray ➜ Computer ➜ Attachment ➜ Wedge ➜ Torso",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -51,12 +51,12 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
                 if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
-                -- Step 1: Tween ke Wedgera
+                -- Tween ke Wedgera
                 local wedgera = room:FindFirstChild("Wedgera", true)
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
                 tweenTo(wedgera)
 
-                -- Step 2: Trigger ClickDetector di X-Ray Machine
+                -- Cari ClickDetector di X-Ray Machine
                 local clickPart
                 local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
                 if machineRoot then
@@ -72,6 +72,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
                 if not clickPart then warn("ClickDetector tidak ditemukan di X-Ray Machine.") return end
 
+                -- Cari Prompt di X-Ray Button
                 local prompt
                 local xrayBtn = room:FindFirstChild("X-Ray Button")
                 if xrayBtn then
@@ -85,28 +86,29 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
                 if not prompt then warn("Prompt tidak ditemukan di X-Ray Button.") return end
 
+                -- Trigger ClickDetector sampai prompt aktif
                 while autofarmRadiology and not prompt.Enabled do
                     pcall(function()
                         fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
                     end)
-                    wait(0.5)
+                    task.wait(0.5)
                 end
                 if not autofarmRadiology then return end
                 print("✅ Prompt aktif!")
 
-                -- Step 3: radiologycomputer2
+                -- radiologycomputer2 ➜ Trigger ProximityPrompt
                 local computer = room:FindFirstChild("radiologycomputer2")
                 if not computer then warn("radiologycomputer2 tidak ditemukan.") return end
                 tweenTo(computer)
                 local compPrompt = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if compPrompt then
                     fireproximityprompt(compPrompt)
-                    print("✅ Prompt di radiologycomputer2 berhasil di-trigger.")
+                    print("✅ ProximityPrompt di radiologycomputer2 berhasil di-trigger.")
                 else
                     warn("ProximityPrompt di radiologycomputer2 tidak ditemukan.")
                 end
 
-                -- Step 4: Cari Part dengan Attachment ➜ trigger
+                -- Attachment ➜ ProximityPrompt
                 local foundPartWithPrompt = nil
                 for _, part in ipairs(room:GetChildren()) do
                     if part:IsA("BasePart") then
@@ -116,45 +118,44 @@ GroupBox:AddToggle("RadiologyToggle", {
                             if attPrompt then
                                 foundPartWithPrompt = part
                                 tweenTo(part)
-                                wait(0.3)
+                                task.wait(0.3)
                                 fireproximityprompt(attPrompt)
-                                print("✅ Trigger ProximityPrompt dari Attachment.")
+                                print("✅ Attachment Prompt berhasil di-trigger.")
                                 break
                             end
                         end
                     end
                 end
                 if not foundPartWithPrompt then
-                    warn("❌ Tidak menemukan Attachment dengan ProximityPrompt.")
+                    warn("❌ Tidak menemukan Part dengan Attachment Prompt.")
                 end
 
-                -- Step 5: Equip Tool "Wedge"
-                local backpack = player:WaitForChild("Backpack")
-                local wedgeTool = backpack:FindFirstChild("Wedge")
+                -- Equip Tool "Wedge"
+                local wedgeTool = player.Backpack:FindFirstChild("Wedge")
                 if wedgeTool then
                     player.Character.Humanoid:EquipTool(wedgeTool)
-                    print("✅ Tool 'Wedge' berhasil di-equip.")
-                    wait(0.5)
+                    print("🧱 Tool 'Wedge' berhasil di-equip.")
                 else
-                    warn("❌ Tool 'Wedge' tidak ada di Backpack.")
-                    return
+                    warn("❌ Tool 'Wedge' tidak ditemukan di Backpack.")
                 end
 
-                -- Step 6: Tween ke Torso dan trigger ProximityPrompt
+                -- Torso ➜ Trigger ProximityPrompt
                 local torso = room:FindFirstChild("PatientRadiology", true)
-                if torso and torso:FindFirstChild("Torso") then
-                    local torsoPart = torso.Torso
-                    local torsoPrompt = torsoPart:FindFirstChildWhichIsA("ProximityPrompt")
+                if torso then
+                    torso = torso:FindFirstChild("Torso")
+                end
+
+                if torso and torso:IsA("BasePart") then
+                    tweenTo(torso)
+                    local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
                     if torsoPrompt then
-                        tweenTo(torsoPart)
-                        wait(0.3)
                         fireproximityprompt(torsoPrompt)
-                        print("✅ Trigger ProximityPrompt di Torso selesai.")
+                        print("✅ ProximityPrompt di Torso berhasil di-trigger.")
                     else
-                        warn("❌ ProximityPrompt tidak ditemukan di Torso.")
+                        warn("❌ ProximityPrompt di Torso tidak ditemukan.")
                     end
                 else
-                    warn("❌ PatientRadiology atau Torso tidak ditemukan.")
+                    warn("❌ Torso tidak ditemukan.")
                 end
             end)
         else
