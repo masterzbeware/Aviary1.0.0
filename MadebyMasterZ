@@ -10,20 +10,17 @@ Library.ForceCheckbox = false
 Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
-    Title = "Made by MasterZ",
-    Footer = "v1.0.0",
-    Icon = 0,
-    NotifySide = "Right",
-    ShowCustomCursor = true,
+	Title = "Made by MasterZ",
+	Footer = "v1.0.0",
+	Icon = 0,
+	NotifySide = "Right",
+	ShowCustomCursor = true,
 })
 
 local Tabs = {
-    Main = Window:AddTab("Main", "user"),
+	Main = Window:AddTab("Main", "user"),
 }
 
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main")
-
--- Utility
 local p = game.Players.LocalPlayer
 local ts = game:GetService("TweenService")
 
@@ -46,23 +43,25 @@ local function equip(tool)
 end
 
 local function unequip()
-	local med = p.Character:FindFirstChild("Medication")
-	if med then
-		med.Parent = p.Backpack
+	local m = p.Character:FindFirstChild("Medication")
+	if m then
+		m.Parent = p.Backpack
 	end
 end
 
--- Toggle AutoFarm
+-- Groupbox Toggle
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main")
+
 LeftGroupBox:AddToggle("AutoFarm", {
-	Text = "Auto Farm",
+	Text = "Auto Farm (Step by Step)",
 	Default = false,
-	Tooltip = "Melakukan langkah terurut dari komputer sampai TubeSystem",
+	Tooltip = "Menjalankan keempat autofarm satu per satu secara berurutan",
 	Callback = function(Value)
 		if Value then
 			task.spawn(function()
 				while Toggles.AutoFarm.Value do
 					pcall(function()
-						-- Step 1: Pergi ke Komputer
+						-- 1. Pergi ke komputer
 						for _, m in pairs(workspace:GetChildren()) do
 							local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
 							if c then
@@ -71,131 +70,98 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								break
 							end
 						end
-						task.wait(0.2)
+						task.wait(0.5)
 
-						-- Step 2: Pergi ke Printer
+						-- 2. Pergi ke printer
 						local pr = workspace:FindFirstChild("Printerpharmacy")
 						if pr and pr:FindFirstChild("Union2") then
 							local u = pr.Union2
 							tp(u.Position + Vector3.new(0, 2, 0))
 							fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
 						end
-						task.wait(0.2)
+						task.wait(0.5)
 
-						-- Step 3: Grab semua Meds (Order jadi Medication)
+						-- 3. Grab Meds sesuai Order
 						local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
 						local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
 						if fs then
-							local function hasOrderTool()
-								for _, t in pairs(p.Backpack:GetChildren()) do
-									if t:IsA("Tool") and t.Name:match("Order") then
-										return true
-									end
-								end
-								return false
-							end
-
-							while hasOrderTool() do
-								for _, t in pairs(p.Backpack:GetChildren()) do
-									if t:IsA("Tool") and t.Name:match("Order") then
-										equip(t)
-										for _, a in pairs(fs:GetDescendants()) do
-											if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
-												for _, pp in pairs(a:GetChildren()) do
-													if pp:IsA("ProximityPrompt") and pp.ActionText then
-														local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
-														if t.Name == m .. " Order" then
-															tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
-															fire(pp)
-															repeat task.wait(0.2)
-															until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
-															unequip()
-															break
-														end
+							for _, t in pairs(p.Backpack:GetChildren()) do
+								if t:IsA("Tool") and t.Name:match("Order") then
+									equip(t)
+									for _, a in pairs(fs:GetDescendants()) do
+										if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
+											for _, pp in pairs(a:GetChildren()) do
+												if pp:IsA("ProximityPrompt") and pp.ActionText then
+													local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
+													if t.Name == m .. " Order" then
+														tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
+														fire(pp)
+														repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
+														unequip()
+														break
 													end
 												end
 											end
 										end
+									end
+									break
+								end
+							end
+						end
+						task.wait(0.5)
+
+						-- 4. Submit Medication
+						local med = p.Backpack:FindFirstChild("Medication")
+						if med then
+							equip(med)
+							local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
+							local tray = desk and desk:FindFirstChild("Pill Counting Tray")
+							local base = tray and tray:FindFirstChild("Base")
+							if base then
+								for _, u in pairs(base:GetChildren()) do
+									local pp = u:IsA("BasePart") and u:FindFirstChildWhichIsA("ProximityPrompt", true)
+									if pp then
+										tp(u.Position + Vector3.new(0, 2, 0))
+										fire(pp)
 										break
 									end
 								end
-								task.wait(0.2)
 							end
 						end
+						task.wait(0.5)
 
-						-- Step 4: Submit Medication
-						local function hasMedication()
-							for _, t in pairs(p.Backpack:GetChildren()) do
-								if t:IsA("Tool") and t.Name == "Medication" then
-									return true
-								end
-							end
-							return false
-						end
-
-						while hasMedication() do
-							local med = p.Backpack:FindFirstChild("Medication")
-							if med then
-								equip(med)
-								local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
-								local tray = desk and desk:FindFirstChild("Pill Counting Tray")
-								local base = tray and tray:FindFirstChild("Base")
-								if base then
-									for _, u in pairs(base:GetChildren()) do
-										local pp = u:IsA("BasePart") and u:FindFirstChildWhichIsA("ProximityPrompt", true)
-										if pp then
-											tp(u.Position + Vector3.new(0, 2, 0))
-											fire(pp)
-											break
-										end
-									end
-								end
-							end
-							task.wait(0.2)
-						end
-
-						-- Step 5: TubeSystem (kirim semua Meds)
-						local function hasMeds()
-							for _, t in pairs(p.Backpack:GetChildren()) do
-								if t:IsA("Tool") and t.Name == "Meds" then
-									return true
-								end
-							end
-							return false
-						end
-
-						while hasMeds() do
-							local tool = p.Backpack:FindFirstChild("Meds")
-							if not tool then break end
+						-- 5. Tube System
+						local tool = p.Backpack:FindFirstChild("Meds")
+						if tool then
 							equip(tool)
-
 							local nearestTube = nil
 							local shortest = math.huge
 							local char = p.Character
-							if not (char and char:FindFirstChild("HumanoidRootPart")) then break end
-							local hrp = char.HumanoidRootPart
+							if char and char:FindFirstChild("HumanoidRootPart") then
+								local hrp = char.HumanoidRootPart
+								for _, t in pairs(workspace:GetChildren()) do
+									if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
+										local dist = (t.Union.Position - hrp.Position).Magnitude
+										if dist < shortest then
+											shortest = dist
+											nearestTube = t
+										end
+									end
+								end
 
-							for _, t in pairs(workspace:GetChildren()) do
-								if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
-									local dist = (t.Union.Position - hrp.Position).Magnitude
-									if dist < shortest then
-										shortest = dist
-										nearestTube = t
+								if nearestTube then
+									local union = nearestTube:FindFirstChild("Union")
+									if union then
+										tp(union.Position + Vector3.new(0, 2, 0))
+										local pp = union:FindFirstChildWhichIsA("ProximityPrompt", true)
+										fire(pp)
 									end
 								end
 							end
-
-							if nearestTube then
-								local union = nearestTube:FindFirstChild("Union")
-								if union then
-									tp(union.Position + Vector3.new(0, 2, 0))
-									local pp = union:FindFirstChildWhichIsA("ProximityPrompt", true)
-									fire(pp)
-								end
-							end
-
-							task.wait(1)
 						end
+
+						-- 6. Ulang dari awal (loop otomatis karena while)
+						task.wait(1)
 					end)
 				end
 			end)
