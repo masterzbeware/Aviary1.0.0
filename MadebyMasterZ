@@ -22,7 +22,7 @@ local autofarmRadiology = false
 GroupBox:AddToggle("RadiologyToggle", {
     Text = "Autofarm Radiology (Wedgera)",
     Default = false,
-    Tooltip = "Tween ke 'Wedgera', trigger ClickDetector sampai Prompt aktif",
+    Tooltip = "Tween ke Wedgera, trigger ClickDetector X-Ray Machine sampai prompt aktif",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -49,30 +49,28 @@ GroupBox:AddToggle("RadiologyToggle", {
                         break
                     end
                 end
-
                 if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
-                -- Teleport ke Wedgera
+                -- Tween ke Part bernama Wedgera
                 local wedgera = room:FindFirstChild("Wedgera", true)
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
                 tweenTo(wedgera)
 
-                -- Cari ClickDetector di: X-Ray (with CXR and table) Machine > X-Ray Machine
-                local detector
-                local machine = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
-                if machine then
-                    local xray = machine:FindFirstChild("X-Ray Machine")
-                    if xray then
-                        for _, part in ipairs(xray:GetDescendants()) do
-                            if part:IsA("ClickDetector") then
-                                detector = part
+                -- Cari ClickDetector di dalam "X-Ray Machine"
+                local clickPart
+                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
+                if machineRoot then
+                    local xrayMachine = machineRoot:FindFirstChild("X-Ray Machine")
+                    if xrayMachine then
+                        for _, obj in ipairs(xrayMachine:GetDescendants()) do
+                            if obj:IsA("ClickDetector") then
+                                clickPart = obj.Parent
                                 break
                             end
                         end
                     end
                 end
-
-                if not detector then warn("ClickDetector tidak ditemukan di X-Ray Machine.") return end
+                if not clickPart then warn("ClickDetector tidak ditemukan di X-Ray Machine.") return end
 
                 -- Cari ProximityPrompt di X-Ray Button
                 local prompt
@@ -86,21 +84,22 @@ GroupBox:AddToggle("RadiologyToggle", {
                         end
                     end
                 end
-
                 if not prompt then warn("Prompt tidak ditemukan di X-Ray Button.") return end
 
-                -- Ulangi trigger click sampai prompt aktif
+                -- Trigger ClickDetector sampai prompt aktif
                 while autofarmRadiology and not prompt.Enabled do
                     pcall(function()
-                        fireclickdetector(detector)
+                        fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
                     end)
-                    wait(0.5)
+                    task.wait(0.5)
                 end
 
                 if prompt.Enabled then
-                    print("✅ ProximityPrompt aktif!")
+                    print("✅ ProximityPrompt aktif! Siap ke step selanjutnya.")
                 end
             end)
+        else
+            print("❌ Autofarm dimatikan.")
         end
     end
 })
