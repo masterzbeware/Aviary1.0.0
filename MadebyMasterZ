@@ -22,7 +22,7 @@ local autofarmRadiology = false
 GroupBox:AddToggle("RadiologyToggle", {
     Text = "Autofarm Radiology",
     Default = false,
-    Tooltip = "Wedgera ➜ X-Ray ➜ Computer ➜ Attachment ➜ Wedge ➜ Torso ➜ dd",
+    Tooltip = "Full Radiology Room Cycle",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -56,7 +56,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
                 tweenTo(wedgera)
 
-                -- Cari ClickDetector di X-Ray Machine
+                -- ClickDetector dari X-Ray Machine
                 local clickPart
                 local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
                 if machineRoot then
@@ -72,7 +72,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
                 if not clickPart then warn("ClickDetector tidak ditemukan di X-Ray Machine.") return end
 
-                -- Cari Prompt di X-Ray Button
+                -- Tunggu Prompt Aktif dari X-Ray Button
                 local prompt
                 local xrayBtn = room:FindFirstChild("X-Ray Button")
                 if xrayBtn then
@@ -86,7 +86,6 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
                 if not prompt then warn("Prompt tidak ditemukan di X-Ray Button.") return end
 
-                -- Trigger ClickDetector sampai prompt aktif
                 while autofarmRadiology and not prompt.Enabled do
                     pcall(function()
                         fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
@@ -96,7 +95,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                 if not autofarmRadiology then return end
                 print("✅ Prompt aktif!")
 
-                -- radiologycomputer2 ➜ Trigger ProximityPrompt
+                -- radiologycomputer2 ➜ ProximityPrompt
                 local computer = room:FindFirstChild("radiologycomputer2")
                 if not computer then warn("radiologycomputer2 tidak ditemukan.") return end
                 tweenTo(computer)
@@ -105,7 +104,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                     fireproximityprompt(compPrompt)
                     print("✅ Prompt di radiologycomputer2 berhasil di-trigger.")
                 else
-                    warn("ProximityPrompt di radiologycomputer2 tidak ditemukan.")
+                    warn("Prompt di radiologycomputer2 tidak ditemukan.")
                 end
 
                 -- Attachment ➜ ProximityPrompt
@@ -134,12 +133,11 @@ GroupBox:AddToggle("RadiologyToggle", {
                     warn("❌ Tool 'Wedge' tidak ditemukan di Backpack.")
                 end
 
-                -- Torso ➜ Trigger ProximityPrompt
+                -- Torso ➜ ProximityPrompt
                 local torso = room:FindFirstChild("PatientRadiology", true)
                 if torso then
                     torso = torso:FindFirstChild("Torso")
                 end
-
                 if torso and torso:IsA("BasePart") then
                     tweenTo(torso)
                     local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -147,13 +145,13 @@ GroupBox:AddToggle("RadiologyToggle", {
                         fireproximityprompt(torsoPrompt)
                         print("✅ Prompt di Torso berhasil di-trigger.")
                     else
-                        warn("❌ ProximityPrompt di Torso tidak ditemukan.")
+                        warn("Prompt di Torso tidak ditemukan.")
                     end
                 else
                     warn("❌ Torso tidak ditemukan.")
                 end
 
-                -- dd ➜ Trigger ProximityPrompt
+                -- dd ➜ ProximityPrompt
                 local dd = nil
                 local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
                 if machineRoot then
@@ -165,7 +163,6 @@ GroupBox:AddToggle("RadiologyToggle", {
                         end
                     end
                 end
-
                 if dd and dd:IsA("BasePart") then
                     tweenTo(dd)
                     local ddPrompt = dd:FindFirstChildWhichIsA("ProximityPrompt", true)
@@ -173,10 +170,38 @@ GroupBox:AddToggle("RadiologyToggle", {
                         fireproximityprompt(ddPrompt)
                         print("✅ Prompt di 'dd' berhasil di-trigger.")
                     else
-                        warn("❌ ProximityPrompt di 'dd' tidak ditemukan.")
+                        warn("Prompt di 'dd' tidak ditemukan.")
                     end
                 else
                     warn("❌ Part 'dd' tidak ditemukan.")
+                end
+
+                -- X-Ray Button ➜ ProximityPrompt di salah satu Part
+                if xrayBtn then
+                    for _, part in ipairs(xrayBtn:GetChildren()) do
+                        if part:IsA("BasePart") then
+                            local btnPrompt = part:FindFirstChildWhichIsA("ProximityPrompt", true)
+                            if btnPrompt then
+                                tweenTo(part)
+                                task.wait(0.3)
+                                fireproximityprompt(btnPrompt)
+                                print("✅ Prompt kedua di X-Ray Button berhasil di-trigger.")
+                                break
+                            end
+                        end
+                    end
+                end
+
+                -- Kembali ke radiologycomputer2 ➜ ProximityPrompt
+                if computer then
+                    tweenTo(computer)
+                    local compPrompt2 = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if compPrompt2 then
+                        fireproximityprompt(compPrompt2)
+                        print("✅ Prompt kedua di radiologycomputer2 berhasil di-trigger.")
+                    else
+                        warn("Prompt kedua di radiologycomputer2 tidak ditemukan.")
+                    end
                 end
             end)
         else
