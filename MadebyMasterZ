@@ -103,20 +103,18 @@ GroupBox:AddToggle("RadiologyToggle", {
                 local compPrompt = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
                 if compPrompt then
                     fireproximityprompt(compPrompt)
-                    print("✅ ProximityPrompt di radiologycomputer2 berhasil di-trigger.")
+                    print("✅ Prompt di radiologycomputer2 berhasil di-trigger.")
                 else
                     warn("ProximityPrompt di radiologycomputer2 tidak ditemukan.")
                 end
 
                 -- Attachment ➜ ProximityPrompt
-                local foundPartWithPrompt = nil
                 for _, part in ipairs(room:GetChildren()) do
                     if part:IsA("BasePart") then
                         local attachment = part:FindFirstChildWhichIsA("Attachment", true)
                         if attachment then
                             local attPrompt = attachment:FindFirstChildWhichIsA("ProximityPrompt", true)
                             if attPrompt then
-                                foundPartWithPrompt = part
                                 tweenTo(part)
                                 task.wait(0.3)
                                 fireproximityprompt(attPrompt)
@@ -125,9 +123,6 @@ GroupBox:AddToggle("RadiologyToggle", {
                             end
                         end
                     end
-                end
-                if not foundPartWithPrompt then
-                    warn("❌ Tidak menemukan Part dengan Attachment Prompt.")
                 end
 
                 -- Equip Tool "Wedge"
@@ -152,11 +147,40 @@ GroupBox:AddToggle("RadiologyToggle", {
                         fireproximityprompt(torsoPrompt)
                         print("✅ Prompt di Torso berhasil di-trigger.")
                     else
-                        warn("❌ Prompt di Torso tidak ditemukan.")
+                        warn("❌ ProximityPrompt di Torso tidak ditemukan.")
                     end
                 else
                     warn("❌ Torso tidak ditemukan.")
                 end
 
                 -- dd ➜ Trigger ProximityPrompt
-                local dd = machineRoot:Fi
+                local dd = nil
+                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
+                if machineRoot then
+                    local xrayTable = machineRoot:FindFirstChild("X-Ray Table")
+                    if xrayTable then
+                        local tableModel = xrayTable:FindFirstChild("Table")
+                        if tableModel then
+                            dd = tableModel:FindFirstChild("dd")
+                        end
+                    end
+                end
+
+                if dd and dd:IsA("BasePart") then
+                    tweenTo(dd)
+                    local ddPrompt = dd:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if ddPrompt then
+                        fireproximityprompt(ddPrompt)
+                        print("✅ Prompt di 'dd' berhasil di-trigger.")
+                    else
+                        warn("❌ ProximityPrompt di 'dd' tidak ditemukan.")
+                    end
+                else
+                    warn("❌ Part 'dd' tidak ditemukan.")
+                end
+            end)
+        else
+            print("❌ Autofarm dimatikan.")
+        end
+    end
+})
