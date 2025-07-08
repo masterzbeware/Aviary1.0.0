@@ -29,8 +29,8 @@ local ts = game:GetService("TweenService")
 local function tp(pos)
     local h = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
     if h then
-        ts:Create(h, TweenInfo.new(0.3), {CFrame = CFrame.new(pos)}):Play()
-        task.wait(0.1)
+        ts:Create(h, TweenInfo.new(1), {CFrame = CFrame.new(pos)}):Play()
+        task.wait(1.2)
     end
 end
 
@@ -52,9 +52,9 @@ local function unequip()
 end
 
 LeftGroupBox:AddToggle("AutoFarm", {
-    Text = "Auto Farm (Cepat)",
+    Text = "Auto Farm (Step by Step)",
     Default = false,
-    Tooltip = "Urutan cepat: Computer → Printer → Grab → Submit → Tube → Ulang",
+    Tooltip = "Computer → Printer → Grab → Submit → Tube → Ulang",
     Callback = function(Value)
         if Value then
             task.spawn(function()
@@ -163,7 +163,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
                             end
                         end
 
-                        -- Step 6: Ulangi
+                        -- Step 6: Ulang
                         task.wait(0.1)
                     end)
                     task.wait(0.1)
@@ -173,7 +173,6 @@ LeftGroupBox:AddToggle("AutoFarm", {
     end,
 })
 
--- Theme & Save
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
