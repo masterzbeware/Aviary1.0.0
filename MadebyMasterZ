@@ -20,9 +20,9 @@ local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 local autofarmRadiology = false
 
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm Radiology (Wedgera)",
+    Text = "Autofarm Radiology (Wedgera ➜ Computer)",
     Default = false,
-    Tooltip = "Tween ke Wedgera, trigger ClickDetector X-Ray Machine sampai prompt aktif",
+    Tooltip = "Tween ke Wedgera, trigger ClickDetector, tunggu prompt, lalu ke radiologycomputer2",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -51,12 +51,12 @@ GroupBox:AddToggle("RadiologyToggle", {
                 end
                 if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
-                -- Tween ke Part bernama Wedgera
+                -- Tween ke Wedgera
                 local wedgera = room:FindFirstChild("Wedgera", true)
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
                 tweenTo(wedgera)
 
-                -- Cari ClickDetector di dalam "X-Ray Machine"
+                -- Cari ClickDetector di dalam X-Ray Machine
                 local clickPart
                 local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
                 if machineRoot then
@@ -91,11 +91,29 @@ GroupBox:AddToggle("RadiologyToggle", {
                     pcall(function()
                         fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
                     end)
-                    task.wait(0.5)
+                    wait(0.5)
                 end
 
-                if prompt.Enabled then
-                    print("✅ ProximityPrompt aktif! Siap ke step selanjutnya.")
+                if not autofarmRadiology then return end
+                print("✅ Prompt aktif!")
+
+                -- Cari Union "radiologycomputer2"
+                local computer = room:FindFirstChild("radiologycomputer2", true)
+                if not computer or not computer:IsA("UnionOperation") then
+                    warn("radiologycomputer2 (Union) tidak ditemukan.")
+                    return
+                end
+
+                -- Teleport ke computer
+                tweenTo(computer)
+
+                -- Trigger ProximityPrompt di dalamnya
+                local compPrompt = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
+                if compPrompt then
+                    fireproximityprompt(compPrompt)
+                    print("✅ ProximityPrompt di radiologycomputer2 berhasil di-trigger.")
+                else
+                    warn("ProximityPrompt di radiologycomputer2 tidak ditemukan.")
                 end
             end)
         else
