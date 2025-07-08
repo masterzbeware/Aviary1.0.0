@@ -20,8 +20,9 @@ local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 local autofarmRadiology = false
 
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm RadiologyRoom1",
+    Text = "Autofarm Radiology (Wedgera)",
     Default = false,
+    Tooltip = "Tween ke 'Wedgera', trigger ClickDetector sampai Prompt aktif",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -49,36 +50,19 @@ GroupBox:AddToggle("RadiologyToggle", {
                     end
                 end
 
-                if not room then warn("Room tidak ditemukan") return end
+                if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
-                -- Cari ClickDetector
-                local clickPart
-                local machine = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
-                if machine then
-                    local sub = machine:FindFirstChild("X-Ray Machine")
-                    if sub then
-                        for _, obj in ipairs(sub:GetDescendants()) do
-                            if obj:IsA("ClickDetector") then
-                                clickPart = obj.Parent
-                                break
-                            end
-                        end
-                    end
-                end
+                -- Cari Part bernama "Wedgera"
+                local wedgera = room:FindFirstChild("Wedgera", true)
+                if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
 
-                if not clickPart then warn("ClickDetector tidak ditemukan") return end
+                tweenTo(wedgera)
 
-                -- Tween ke Part & trigger
-                tweenTo(clickPart)
-                for i = 1, 5 do
-                    if not autofarmRadiology then return end
-                    pcall(function()
-                        fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
-                    end)
-                    wait(0.5)
-                end
+                -- Trigger ClickDetector di dalam "Wedgera"
+                local detector = wedgera:FindFirstChildWhichIsA("ClickDetector", true)
+                if not detector then warn("ClickDetector di Wedgera tidak ditemukan.") return end
 
-                -- Tunggu ProximityPrompt aktif
+                -- Ulang trigger sampai ProximityPrompt aktif
                 local prompt
                 local xrayBtn = room:FindFirstChild("X-Ray Button")
                 if xrayBtn then
@@ -91,15 +75,18 @@ GroupBox:AddToggle("RadiologyToggle", {
                     end
                 end
 
-                if not prompt then warn("Prompt tidak ditemukan") return end
+                if not prompt then warn("Prompt tidak ditemukan di X-Ray Button.") return end
 
-                repeat
-                    if not autofarmRadiology then return end
-                    print("Menunggu prompt aktif...")
+                while autofarmRadiology and not prompt.Enabled do
+                    pcall(function()
+                        fireclickdetector(detector)
+                    end)
                     wait(0.5)
-                until prompt.Enabled
+                end
 
-                print("✅ Prompt aktif!")
+                if prompt.Enabled then
+                    print("✅ ProximityPrompt aktif! Selesai.")
+                end
             end)
         end
     end
