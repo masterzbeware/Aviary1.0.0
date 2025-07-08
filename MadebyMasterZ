@@ -17,14 +17,11 @@ local Tabs = {
 
 local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 
-local autofarmRadiology = false
-
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm Radiology",
+    Text = "Autofarm Radiology (Sekali Jalan)",
     Default = false,
-    Tooltip = "Langkah penuh Radiology Room",
+    Tooltip = "Jalankan urutan sekali tanpa looping",
     Callback = function(value)
-        autofarmRadiology = value
         if value then
             task.spawn(function()
                 local TweenService = game:GetService("TweenService")
@@ -34,59 +31,49 @@ GroupBox:AddToggle("RadiologyToggle", {
                 local hrp = char:WaitForChild("HumanoidRootPart")
 
                 local function tweenTo(part)
-                    if not part then return end
-                    local goal = { CFrame = part.CFrame + Vector3.new(0, 3, 0) }
-                    local tween = TweenService:Create(hrp, TweenInfo.new(1, Enum.EasingStyle.Linear), goal)
-                    tween:Play()
-                    tween.Completed:Wait()
-                end
-
-                -- Ambil RadiologyRoom1 pertama
-                local room
-                for _, r in ipairs(workspace:WaitForChild("RadiologyRooms"):GetChildren()) do
-                    if r:IsA("Model") and r.Name == "RadiologyRoom1" then
-                        room = r
-                        break
+                    if part and part:IsA("BasePart") then
+                        local goal = { CFrame = part.CFrame + Vector3.new(0, 3, 0) }
+                        local tween = TweenService:Create(hrp, TweenInfo.new(1, Enum.EasingStyle.Linear), goal)
+                        tween:Play()
+                        tween.Completed:Wait()
                     end
                 end
-                if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
+
+                local room = workspace:WaitForChild("RadiologyRooms"):FindFirstChild("RadiologyRoom1")
+                if not room then warn("❌ RadiologyRoom1 tidak ditemukan.") return end
 
                 -- Step 1: Wedgera
-                local wedgera = room:FindFirstChild("Wedgera", true)
-                if not wedgera then warn("Wedgera tidak ditemukan.") return end
-                tweenTo(wedgera)
+                tweenTo(room:FindFirstChild("Wedgera", true))
 
                 -- Step 2: Trigger ClickDetector
                 local clickPart
-                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
-                if machineRoot then
-                    local xrayMachine = machineRoot:FindFirstChild("X-Ray Machine")
-                    if xrayMachine then
-                        for _, obj in ipairs(xrayMachine:GetDescendants()) do
-                            if obj:IsA("ClickDetector") then
-                                clickPart = obj.Parent
+                local machine = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
+                if machine then
+                    local xray = machine:FindFirstChild("X-Ray Machine")
+                    if xray then
+                        for _, p in ipairs(xray:GetDescendants()) do
+                            if p:IsA("ClickDetector") then
+                                clickPart = p.Parent
                                 break
                             end
                         end
                     end
                 end
-                if not clickPart then warn("ClickDetector tidak ditemukan.") return end
+
                 local xrayBtnPrompt
                 local xrayBtn = room:FindFirstChild("X-Ray Button")
                 if xrayBtn then
                     for _, part in ipairs(xrayBtn:GetChildren()) do
                         local p = part:FindFirstChildWhichIsA("ProximityPrompt")
-                        if p then
-                            xrayBtnPrompt = p
-                            break
-                        end
+                        if p then xrayBtnPrompt = p break end
                     end
                 end
-                if not xrayBtnPrompt then warn("Prompt X-Ray Button tidak ditemukan.") return end
-                while autofarmRadiology and not xrayBtnPrompt.Enabled do
-                    pcall(function()
-                        fireclickdetector(clickPart:FindFirstChildWhichIsA("ClickDetector"))
-                    end)
+
+                while xrayBtnPrompt and not xrayBtnPrompt.Enabled do
+                    if clickPart then
+                        local cd = clickPart:FindFirstChildWhichIsA("ClickDetector")
+                        if cd then fireclickdetector(cd) end
+                    end
                     task.wait(0.5)
                 end
 
@@ -94,93 +81,111 @@ GroupBox:AddToggle("RadiologyToggle", {
                 local computer = room:FindFirstChild("radiologycomputer2")
                 if computer then
                     tweenTo(computer)
-                    local compPrompt = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if compPrompt then fireproximityprompt(compPrompt) end
+                    local p = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if p then fireproximityprompt(p) end
                 end
 
-                -- Step 4: Attachment Prompt
-                for _, part in ipairs(room:GetChildren()) do
-                    if part:IsA("BasePart") then
-                        local attachment = part:FindFirstChildWhichIsA("Attachment", true)
-                        if attachment then
-                            local attPrompt = attachment:FindFirstChildWhichIsA("ProximityPrompt", true)
-                            if attPrompt then
-                                tweenTo(part)
-                                fireproximityprompt(attPrompt)
-                                break
-                            end
+                -- Step 4: Attachment
+                for _, part in ipairs(room:GetDescendants()) do
+                    if part:IsA("Attachment") and part:FindFirstChildWhichIsA("ProximityPrompt") then
+                        local parent = part.Parent
+                        if parent:IsA("BasePart") then
+                            tweenTo(parent)
+                            fireproximityprompt(part:FindFirstChildWhichIsA("ProximityPrompt"))
+                            break
                         end
                     end
                 end
 
-                -- Step 5: Equip Tool "Wedge"
-                local wedgeTool = player.Backpack:FindFirstChild("Wedge")
-                if wedgeTool then
-                    player.Character.Humanoid:EquipTool(wedgeTool)
-                end
+                -- Step 5: Equip Tool Wedge
+                local wedge = player.Backpack:FindFirstChild("Wedge")
+                if wedge then player.Character:FindFirstChildOfClass("Humanoid"):EquipTool(wedge) end
 
-                -- Step 6: Torso Prompt
+                -- Step 6: Torso
                 local torso = room:FindFirstChild("PatientRadiology", true)
-                if torso then torso = torso:FindFirstChild("Torso") end
+                torso = torso and torso:FindFirstChild("Torso")
                 if torso then
                     tweenTo(torso)
-                    local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if torsoPrompt then fireproximityprompt(torsoPrompt) end
+                    local p = torso:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then fireproximityprompt(p) end
                 end
 
-                -- Step 7: dd prompt
-                local dd
-                if machineRoot then
-                    local xrayTable = machineRoot:FindFirstChild("X-Ray Table")
-                    if xrayTable then
-                        local tableModel = xrayTable:FindFirstChild("Table")
-                        if tableModel then
-                            dd = tableModel:FindFirstChild("dd")
-                        end
-                    end
-                end
+                -- Step 7: dd
+                local dd = machine and machine:FindFirstChild("X-Ray Table")
+                dd = dd and dd:FindFirstChild("Table")
+                dd = dd and dd:FindFirstChild("dd")
                 if dd then
                     tweenTo(dd)
-                    local ddPrompt = dd:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if ddPrompt then fireproximityprompt(ddPrompt) end
+                    local p = dd:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then fireproximityprompt(p) end
                 end
 
-                -- Step 8: Salah satu Part di X-Ray Button
+                -- Step 8: ProximityPrompt di X-Ray Button
                 if xrayBtn then
                     for _, part in ipairs(xrayBtn:GetChildren()) do
-                        if part:IsA("BasePart") then
-                            local btnPrompt = part:FindFirstChildWhichIsA("ProximityPrompt", true)
-                            if btnPrompt then
-                                tweenTo(part)
-                                fireproximityprompt(btnPrompt)
-                                break
-                            end
+                        local p = part:FindFirstChildWhichIsA("ProximityPrompt")
+                        if p then
+                            tweenTo(part)
+                            fireproximityprompt(p)
+                            break
                         end
                     end
                 end
 
-                -- Step 9: Tunggu 4 detik
                 task.wait(4)
 
-                -- Step 10: radiologycomputer2 lagi
+                -- Step 9: radiologycomputer2 lagi
                 if computer then
                     tweenTo(computer)
-                    local compPrompt2 = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if compPrompt2 then fireproximityprompt(compPrompt2) end
+                    local p = computer:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if p then fireproximityprompt(p) end
                 end
 
-                -- ✅ Step 11: Kembali ke Torso lagi dan trigger ProximityPrompt
-                local torsoRepeat = room:FindFirstChild("PatientRadiology", true)
-                if torsoRepeat then torsoRepeat = torsoRepeat:FindFirstChild("Torso") end
-                if torsoRepeat then
-                    tweenTo(torsoRepeat)
-                    local torsoPrompt2 = torsoRepeat:FindFirstChildWhichIsA("ProximityPrompt", true)
-                    if torsoPrompt2 then fireproximityprompt(torsoPrompt2) end
+                -- Step 10: Torso lagi
+                if torso then
+                    tweenTo(torso)
+                    local p = torso:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then fireproximityprompt(p) end
                 end
 
+                -- Step 11: Sheet
+                local sheet = machine and machine:FindFirstChild("X-Ray Table")
+                sheet = sheet and sheet:FindFirstChild("Table")
+                sheet = sheet and sheet:FindFirstChild("Sheet")
+                if sheet then
+                    tweenTo(sheet)
+                    local p = sheet:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then fireproximityprompt(p) end
+                end
+
+                -- Step 12: krim2
+                local krim2 = room:FindFirstChild("Closet", true)
+                krim2 = krim2 and krim2:FindFirstChild("krim2")
+                local att = krim2 and krim2:FindFirstChildWhichIsA("Attachment")
+                if att then
+                    local p = att:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then
+                        tweenTo(krim2)
+                        fireproximityprompt(p)
+                    end
+                end
+
+                -- Step 13: Balik lagi ke Sheet
+                if sheet then
+                    tweenTo(sheet)
+                    local p = sheet:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then fireproximityprompt(p) end
+                end
+
+                -- Step 14: Torso terakhir
+                if torso then
+                    tweenTo(torso)
+                    local p = torso:FindFirstChildWhichIsA("ProximityPrompt")
+                    if p then fireproximityprompt(p) end
+                end
+
+                print("✅ Semua langkah Radiology selesai dijalankan.")
             end)
-        else
-            print("❌ Autofarm Radiology dimatikan.")
         end
     end
 })
