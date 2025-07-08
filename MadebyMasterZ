@@ -134,4 +134,29 @@ GroupBox:AddToggle("RadiologyToggle", {
                 local wedgeTool = player.Backpack:FindFirstChild("Wedge")
                 if wedgeTool then
                     player.Character.Humanoid:EquipTool(wedgeTool)
-                    print("🧱 Tool 'Wedge' berhasil di-equi
+                    print("🧱 Tool 'Wedge' berhasil di-equip.")
+                else
+                    warn("❌ Tool 'Wedge' tidak ditemukan di Backpack.")
+                end
+
+                -- Torso ➜ Trigger ProximityPrompt
+                local torso = room:FindFirstChild("PatientRadiology", true)
+                if torso then
+                    torso = torso:FindFirstChild("Torso")
+                end
+
+                if torso and torso:IsA("BasePart") then
+                    tweenTo(torso)
+                    local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
+                    if torsoPrompt then
+                        fireproximityprompt(torsoPrompt)
+                        print("✅ Prompt di Torso berhasil di-trigger.")
+                    else
+                        warn("❌ Prompt di Torso tidak ditemukan.")
+                    end
+                else
+                    warn("❌ Torso tidak ditemukan.")
+                end
+
+                -- dd ➜ Trigger ProximityPrompt
+                local dd = machineRoot:Fi
