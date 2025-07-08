@@ -139,7 +139,7 @@ GroupBox:AddToggle("RadiologyToggle", {
                     warn("❌ Tool 'Wedge' tidak ditemukan di Backpack.")
                 end
 
-                -- Torso ➜ Trigger ProximityPrompt
+                -- Torso ➜ trigger ProximityPrompt di dalamnya
                 local torso = room:FindFirstChild("PatientRadiology", true)
                 if torso then
                     torso = torso:FindFirstChild("Torso")
@@ -150,9 +150,9 @@ GroupBox:AddToggle("RadiologyToggle", {
                     local torsoPrompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
                     if torsoPrompt then
                         fireproximityprompt(torsoPrompt)
-                        print("✅ ProximityPrompt di Torso berhasil di-trigger.")
+                        print("✅ ProximityPrompt di dalam Torso berhasil di-trigger.")
                     else
-                        warn("❌ ProximityPrompt di Torso tidak ditemukan.")
+                        warn("❌ ProximityPrompt di dalam Torso tidak ditemukan.")
                     end
                 else
                     warn("❌ Torso tidak ditemukan.")
