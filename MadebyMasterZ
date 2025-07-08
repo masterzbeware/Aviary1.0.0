@@ -21,6 +21,9 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main")
+
+-- Utility Functions
 local p = game.Players.LocalPlayer
 local ts = game:GetService("TweenService")
 
@@ -49,19 +52,17 @@ local function unequip()
 	end
 end
 
--- Groupbox Toggle
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main")
-
+-- Main Toggle
 LeftGroupBox:AddToggle("AutoFarm", {
 	Text = "Auto Farm",
 	Default = false,
-	Tooltip = "Menjalankan autofarm berurutan",
+	Tooltip = "Jalankan urutan autofarm secara rapi",
 	Callback = function(Value)
 		if Value then
 			task.spawn(function()
 				while Toggles.AutoFarm.Value do
 					pcall(function()
-						-- === 1. Computer ===
+						-- Step 1: Computer
 						for _, m in pairs(workspace:GetChildren()) do
 							local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
 							if c then
@@ -70,17 +71,19 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								break
 							end
 						end
+						task.wait(0.2)
 
-						-- === 2. Printer ===
+						-- Step 2: Printer
 						local pr = workspace:FindFirstChild("Printerpharmacy")
 						if pr and pr:FindFirstChild("Union2") then
 							local u = pr.Union2
 							tp(u.Position + Vector3.new(0, 2, 0))
 							fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
 						end
+						task.wait(0.2)
 
-						-- === 3. Grab Meds ===
-						local s = workspace:FindFirstChild("Finno_992 | Stocked Pharmacy Shelving")
+						-- Step 3: Grab Meds
+						local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
 						local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
 						if fs then
 							for _, t in pairs(p.Backpack:GetChildren()) do
@@ -106,8 +109,9 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								end
 							end
 						end
+						task.wait(0.2)
 
-						-- === 4. Submit Medication ===
+						-- Step 4: Submit Medication
 						local med = p.Backpack:FindFirstChild("Medication")
 						if med then
 							equip(med)
@@ -125,38 +129,46 @@ LeftGroupBox:AddToggle("AutoFarm", {
 								end
 							end
 						end
+						task.wait(0.2)
 
-						-- === 5. Tube System ===
-						local tool = p.Backpack:FindFirstChild("Meds")
-						if tool then
+						-- Step 5: Tube System (loop until all "Meds" gone)
+						while true do
+							local tool = p.Backpack:FindFirstChild("Meds")
+							if not tool then break end
 							equip(tool)
+
 							local nearestTube = nil
 							local shortest = math.huge
 							local char = p.Character
-							if char and char:FindFirstChild("HumanoidRootPart") then
-								local hrp = char.HumanoidRootPart
-								for _, t in pairs(workspace:GetChildren()) do
-									if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
-										local dist = (t.Union.Position - hrp.Position).Magnitude
-										if dist < shortest then
-											shortest = dist
-											nearestTube = t
-										end
-									end
-								end
+							if not (char and char:FindFirstChild("HumanoidRootPart")) then break end
+							local hrp = char.HumanoidRootPart
 
-								if nearestTube then
-									local union = nearestTube:FindFirstChild("Union")
-									if union then
-										tp(union.Position + Vector3.new(0, 2, 0))
-										local pp = union:FindFirstChildWhichIsA("ProximityPrompt", true)
-										fire(pp)
+							for _, t in pairs(workspace:GetChildren()) do
+								if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
+									local dist = (t.Union.Position - hrp.Position).Magnitude
+									if dist < shortest then
+										shortest = dist
+										nearestTube = t
 									end
 								end
 							end
+
+							if nearestTube then
+								local union = nearestTube:FindFirstChild("Union")
+								if union then
+									tp(union.Position + Vector3.new(0, 2, 0))
+									local pp = union:FindFirstChildWhichIsA("ProximityPrompt", true)
+									fire(pp)
+								end
+							end
+							task.wait(1)
+						end
+
+						-- Tunggu sampai semua "Meds" hilang
+						while p.Backpack:FindFirstChild("Meds") do
+							task.wait(1)
 						end
 					end)
-					task.wait(0.5) -- jeda antar siklus
 				end
 			end)
 		end
