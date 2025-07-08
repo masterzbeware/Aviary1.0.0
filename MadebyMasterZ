@@ -20,9 +20,9 @@ local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 local autofarmRadiology = false
 
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm Radiology (Wedgera ➜ Computer)",
+    Text = "Autofarm Radiology",
     Default = false,
-    Tooltip = "Tween ke Wedgera, trigger ClickDetector, tunggu prompt, lalu ke radiologycomputer2",
+    Tooltip = "Wedgera ➜ ClickDetector ➜ Prompt ➜ Computer",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -52,13 +52,13 @@ GroupBox:AddToggle("RadiologyToggle", {
                 if not room then warn("RadiologyRoom1 tidak ditemukan.") return end
 
                 -- Tween ke Wedgera
-                local wedgera = room:FindFirstChild("Wedgera")
+                local wedgera = room:FindFirstChild("Wedgera", true)
                 if not wedgera then warn("Part 'Wedgera' tidak ditemukan.") return end
                 tweenTo(wedgera)
 
-                -- Cari ClickDetector di X-Ray Machine
+                -- Cari ClickDetector di dalam X-Ray Machine
                 local clickPart
-                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine")
+                local machineRoot = room:FindFirstChild("X-Ray (with CXR and table) Machine", true)
                 if machineRoot then
                     local xrayMachine = machineRoot:FindFirstChild("X-Ray Machine")
                     if xrayMachine then
@@ -97,14 +97,10 @@ GroupBox:AddToggle("RadiologyToggle", {
                 if not autofarmRadiology then return end
                 print("✅ Prompt aktif!")
 
-                -- Langsung ambil radiologycomputer2 dari dalam room
+                -- Cari dan tween ke radiologycomputer2
                 local computer = room:FindFirstChild("radiologycomputer2")
-                if not computer or not computer:IsA("UnionOperation") then
-                    warn("radiologycomputer2 tidak ditemukan atau bukan Union.")
-                    return
-                end
+                if not computer then warn("radiologycomputer2 tidak ditemukan.") return end
 
-                -- Tween ke radiologycomputer2
                 tweenTo(computer)
 
                 -- Trigger ProximityPrompt di dalamnya
