@@ -69,7 +69,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
                                 break
                             end
                         end
-                        task.wait(0.1)
+                        task.wait(0.5)
 
                         -- Step 2: Printer
                         local pr = workspace:FindFirstChild("Printerpharmacy")
@@ -78,7 +78,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
                             tp(u.Position + Vector3.new(0, 2, 0))
                             fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
                         end
-                        task.wait(0.1)
+                        task.wait(0.5)
 
                         -- Step 3: Grab Meds
                         local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
@@ -96,7 +96,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
                                                     if t.Name == m .. " Order" then
                                                         tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
                                                         fire(pp)
-                                                        repeat task.wait(0.1) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
+                                                        repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
                                                         unequip()
                                                         grabbed = true
                                                         break
@@ -111,7 +111,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
                             end
                         end
                         if not grabbed then return end
-                        task.wait(0.1)
+                        task.wait(0.5)
 
                         -- Step 4: Submit Medication
                         local submitted = false
@@ -134,7 +134,7 @@ LeftGroupBox:AddToggle("AutoFarm", {
                             end
                         end
                         if not submitted then return end
-                        task.wait(0.1)
+                        task.wait(0.5)
 
                         -- Step 5: Tube System
                         local meds = p.Backpack:FindFirstChild("Meds")
@@ -163,16 +163,17 @@ LeftGroupBox:AddToggle("AutoFarm", {
                             end
                         end
 
-                        -- Step 6: Ulang
-                        task.wait(0.1)
+                        -- Step 6: Ulangi
+                        task.wait(1)
                     end)
-                    task.wait(0.1)
+                    task.wait(0.5)
                 end
             end)
         end
     end,
 })
 
+-- Theme dan Save
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
