@@ -20,9 +20,9 @@ local GroupBox = Tabs.Main:AddLeftGroupbox("Autofarm")
 local autofarmRadiology = false
 
 GroupBox:AddToggle("RadiologyToggle", {
-    Text = "Autofarm Radiology",
+    Text = "Autofarm Radiology (Wedgera ➜ Attachment)",
     Default = false,
-    Tooltip = "Wedgera ➜ ClickDetector ➜ Prompt ➜ Computer",
+    Tooltip = "Tween dan trigger urutan Radiology Room1",
     Callback = function(value)
         autofarmRadiology = value
         if value then
@@ -110,6 +110,34 @@ GroupBox:AddToggle("RadiologyToggle", {
                     print("✅ ProximityPrompt di radiologycomputer2 berhasil di-trigger.")
                 else
                     warn("ProximityPrompt di radiologycomputer2 tidak ditemukan.")
+                end
+
+                if not autofarmRadiology then return end
+
+                -- [STEP: Attachment Trigger]
+                local targetPrompt = nil
+                for _, part in ipairs(room:GetDescendants()) do
+                    if part:IsA("Attachment") then
+                        local prox = part:FindFirstChildWhichIsA("ProximityPrompt")
+                        if prox then
+                            targetPrompt = prox
+                            break
+                        end
+                    end
+                end
+
+                if targetPrompt then
+                    local parentPart = targetPrompt.Parent and targetPrompt.Parent.Parent
+                    if parentPart and parentPart:IsA("BasePart") then
+                        tweenTo(parentPart)
+                        wait(0.5)
+                        fireproximityprompt(targetPrompt)
+                        print("✅ ProximityPrompt dari Attachment berhasil di-trigger.")
+                    else
+                        warn("Tidak bisa tween ke Attachment karena tidak menemukan Part induknya.")
+                    end
+                else
+                    warn("Attachment dengan ProximityPrompt tidak ditemukan.")
                 end
             end)
         else
