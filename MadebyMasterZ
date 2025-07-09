@@ -1,3 +1,4 @@
+-- Library UI
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
@@ -5,12 +6,6 @@ local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
 local Options = Library.Options
 local Toggles = Library.Toggles
-
-local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 
 local Window = Library:CreateWindow({
     Title = "MasterZ Toggle GUI",
@@ -26,58 +21,98 @@ local Tabs = {
 
 local GroupBox = Tabs.Main:AddLeftGroupbox("Toggle Section")
 
--- Toggle utama
-GroupBox:AddToggle("CTAutoFarm", {
-    Text = "Auto CT Radiology",
-    Default = false,
-    Tooltip = "Teleport ke Torso dan trigger prompt",
-    Callback = function(value)
-        if value then
-            CTLoop = task.spawn(function()
-                while Toggles.CTAutoFarm.Value do
-                    local rooms = game.Workspace:WaitForChild("CTRooms"):GetChildren()
+-- Tween + Trigger Setup
+local TweenService = game:GetService("TweenService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
-                    -- Ambil model acak dari CTRooms
-                    local selectedRoom = nil
-                    for _, room in ipairs(rooms) do
-                        if room:IsA("Model") and room:FindFirstChild("PatientRadiology2") then
-                            selectedRoom = room
-                            break
-                        end
-                    end
+local function getCharacter()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
 
-                    if selectedRoom then
-                        local torso = selectedRoom.PatientRadiology2:FindFirstChild("Torso")
-                        if torso and torso:IsA("BasePart") then
-                            -- Tween ke posisi torso
-                            local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Sine, Enum.EasingDirection.Out)
-                            local tween = TweenService:Create(HumanoidRootPart, tweenInfo, {CFrame = torso.CFrame + Vector3.new(0, 3, 0)})
-                            tween:Play()
-                            tween.Completed:Wait()
+local function TweenTo(position, duration)
+    local character = getCharacter()
+    local hrp = character:WaitForChild("HumanoidRootPart")
+    local tweenInfo = TweenInfo.new(duration or 1, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+    local goal = { CFrame = CFrame.new(position) }
+    local tween = TweenService:Create(hrp, tweenInfo, goal)
+    tween:Play()
+    tween.Completed:Wait()
+end
 
-                            -- Tunggu sedikit sebelum trigger
-                            task.wait(1)
+local function TriggerPrompt(prompt)
+    if prompt and prompt:IsA("ProximityPrompt") then
+        fireproximityprompt(prompt)
+    end
+end
 
-                            -- Trigger ProximityPrompt jika ada
-                            local prompt = torso:FindFirstChildOfClass("ProximityPrompt")
-                            if prompt then
-                                fireproximityprompt(prompt)
-                            end
-                        end
-                    end
+local function TriggerClick(clickDetector)
+    if clickDetector and clickDetector:IsA("ClickDetector") then
+        fireclickdetector(clickDetector)
+    end
+end
 
-                    task.wait(3) -- Delay antar loop
+-- Fungsi utama
+local function TeleportAndTrigger()
+    local ctRooms = workspace:FindFirstChild("CTRooms")
+    if not ctRooms then return end
+
+    local models = ctRooms:GetChildren()
+    if #models == 0 then return end
+
+    -- Ambil satu model secara acak
+    local model = models[math.random(1, #models)]
+    local patient = model:FindFirstChild("PatientRadiology2")
+
+    if patient and patient:FindFirstChild("Torso") then
+        local torso = patient.Torso
+        local prompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
+
+        if torso and prompt then
+            -- Langkah 1: Teleport ke Torso dan trigger ProximityPrompt
+            TweenTo(torso.Position + Vector3.new(0, 5, 0), 1)
+            task.wait(0.5)
+            TriggerPrompt(prompt)
+
+            -- Langkah 2: Cari Union yang punya ClickDetector
+            local targetUnion = nil
+            for _, obj in ipairs(model:GetDescendants()) do
+                if obj:IsA("UnionOperation") and obj:FindFirstChildWhichIsA("ClickDetector") then
+                    targetUnion = obj
+                    break
                 end
-            end)
-        else
-            if CTLoop then
-                task.cancel(CTLoop)
+            end
+
+            if targetUnion then
+                local click = targetUnion:FindFirstChildWhichIsA("ClickDetector")
+                -- Langkah 3: Tween teleport ke Union dan trigger ClickDetector
+                TweenTo(targetUnion.Position + Vector3.new(0, 5, 0), 1)
+                task.wait(0.5)
+                TriggerClick(click)
             end
         end
     end
+end
+
+-- Toggle Loop
+local running = false
+
+GroupBox:AddToggle("CTAuto", {
+    Text = "Auto CT Teleport + Prompt + Click",
+    Default = false,
+    Tooltip = "Teleport ke CT, trigger prompt & click otomatis",
+    Callback = function(state)
+        running = state
+        task.spawn(function()
+            while running do
+                TeleportAndTrigger()
+                task.wait(2) -- jeda antar loop
+            end
+        end)
+    end
 })
 
--- Setup theme dan save manager
+-- Setup tema dan save
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
@@ -88,3 +123,4 @@ SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 ThemeManager:SetFolder("MyScriptHub")
 SaveManager:SetFolder("MyScriptHub/specific-game")
 SaveManager:SetSubFolder("specific-place")
+SaveManager:BuildConfigSection(Tabs.Main)
