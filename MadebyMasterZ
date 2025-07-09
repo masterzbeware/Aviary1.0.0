@@ -67,12 +67,12 @@ local function TeleportAndTrigger()
         local prompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
 
         if torso and prompt then
-            -- Langkah 1: Tween ke Torso dan trigger ProximityPrompt
+            -- Langkah 1: Teleport ke Torso pertama dan trigger
             TweenTo(torso.Position + Vector3.new(0, 5, 0), 1)
             task.wait(0.5)
             TriggerPrompt(prompt)
 
-            -- Langkah 2: Cari Union yang punya ClickDetector
+            -- Langkah 2: Cari Union dengan ClickDetector
             local targetUnion = nil
             for _, obj in ipairs(model:GetDescendants()) do
                 if obj:IsA("UnionOperation") and obj:FindFirstChildWhichIsA("ClickDetector") then
@@ -83,12 +83,11 @@ local function TeleportAndTrigger()
 
             if targetUnion then
                 local click = targetUnion:FindFirstChildWhichIsA("ClickDetector")
-                -- Tween ke Union dan trigger ClickDetector
                 TweenTo(targetUnion.Position + Vector3.new(0, 5, 0), 1)
                 task.wait(0.5)
                 TriggerClick(click)
 
-                -- Langkah 3: Cari X-Ray Button yang ada ProximityPrompt
+                -- Langkah 3: Cari Part dalam X-Ray Button yang punya ProximityPrompt
                 local xrayButtonModel = model:FindFirstChild("X-Ray Button")
                 if xrayButtonModel then
                     local targetPart = nil
@@ -101,13 +100,17 @@ local function TeleportAndTrigger()
 
                     if targetPart then
                         local prompt2 = targetPart:FindFirstChildWhichIsA("ProximityPrompt")
-                        -- Tween ke Part dan trigger prompt
                         TweenTo(targetPart.Position + Vector3.new(0, 5, 0), 1)
                         task.wait(0.5)
                         TriggerPrompt(prompt2)
 
-                        -- Tunggu 17 detik
+                        -- Langkah 4: Tunggu 17 detik
                         task.wait(17)
+
+                        -- Langkah 5: Kembali ke Torso dan trigger lagi
+                        TweenTo(torso.Position + Vector3.new(0, 5, 0), 1)
+                        task.wait(0.5)
+                        TriggerPrompt(prompt)
                     end
                 end
             end
@@ -119,15 +122,15 @@ end
 local running = false
 
 GroupBox:AddToggle("CTAuto", {
-    Text = "Auto CT All Steps",
+    Text = "Auto CT Full Loop",
     Default = false,
-    Tooltip = "Teleport CT, prompt & click, lalu X-Ray",
+    Tooltip = "CT: prompt > click > x-ray > balik prompt",
     Callback = function(state)
         running = state
         task.spawn(function()
             while running do
                 TeleportAndTrigger()
-                task.wait(2) -- jeda antar loop
+                task.wait(2)
             end
         end)
     end
