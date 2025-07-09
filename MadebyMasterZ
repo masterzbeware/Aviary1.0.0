@@ -72,6 +72,8 @@ local function TeleportAndTrigger()
             task.wait(0.5)
             TriggerPrompt(prompt)
 
+            task.wait(2) -- ✅ Setelah langkah 1
+
             -- Langkah 2: Cari Union dengan ClickDetector
             local targetUnion = nil
             for _, obj in ipairs(model:GetDescendants()) do
@@ -87,7 +89,9 @@ local function TeleportAndTrigger()
                 task.wait(0.5)
                 TriggerClick(click)
 
-                -- Langkah 3: Cari Part dalam X-Ray Button yang punya ProximityPrompt
+                task.wait(2) -- ✅ Setelah langkah 2
+
+                -- Langkah 3: Cari X-Ray Button yang ada ProximityPrompt
                 local xrayButtonModel = model:FindFirstChild("X-Ray Button")
                 if xrayButtonModel then
                     local targetPart = nil
@@ -104,8 +108,7 @@ local function TeleportAndTrigger()
                         task.wait(0.5)
                         TriggerPrompt(prompt2)
 
-                        -- Langkah 4: Tunggu 17 detik
-                        task.wait(17)
+                        task.wait(17) -- Langkah 4: Tunggu 17 detik
 
                         -- Langkah 5: Kembali ke Torso dan trigger lagi
                         TweenTo(torso.Position + Vector3.new(0, 5, 0), 1)
