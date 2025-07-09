@@ -1,8 +1,6 @@
 -- Library UI
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
 local Options = Library.Options
 local Toggles = Library.Toggles
@@ -69,7 +67,7 @@ local function TeleportAndTrigger()
         local prompt = torso:FindFirstChildWhichIsA("ProximityPrompt", true)
 
         if torso and prompt then
-            -- Langkah 1: Teleport ke Torso dan trigger ProximityPrompt
+            -- Langkah 1: Tween ke Torso dan trigger ProximityPrompt
             TweenTo(torso.Position + Vector3.new(0, 5, 0), 1)
             task.wait(0.5)
             TriggerPrompt(prompt)
@@ -85,10 +83,33 @@ local function TeleportAndTrigger()
 
             if targetUnion then
                 local click = targetUnion:FindFirstChildWhichIsA("ClickDetector")
-                -- Langkah 3: Tween teleport ke Union dan trigger ClickDetector
+                -- Tween ke Union dan trigger ClickDetector
                 TweenTo(targetUnion.Position + Vector3.new(0, 5, 0), 1)
                 task.wait(0.5)
                 TriggerClick(click)
+
+                -- Langkah 3: Cari X-Ray Button yang ada ProximityPrompt
+                local xrayButtonModel = model:FindFirstChild("X-Ray Button")
+                if xrayButtonModel then
+                    local targetPart = nil
+                    for _, part in ipairs(xrayButtonModel:GetChildren()) do
+                        if part:IsA("BasePart") and part:FindFirstChildWhichIsA("ProximityPrompt") then
+                            targetPart = part
+                            break
+                        end
+                    end
+
+                    if targetPart then
+                        local prompt2 = targetPart:FindFirstChildWhichIsA("ProximityPrompt")
+                        -- Tween ke Part dan trigger prompt
+                        TweenTo(targetPart.Position + Vector3.new(0, 5, 0), 1)
+                        task.wait(0.5)
+                        TriggerPrompt(prompt2)
+
+                        -- Tunggu 17 detik
+                        task.wait(17)
+                    end
+                end
             end
         end
     end
@@ -98,9 +119,9 @@ end
 local running = false
 
 GroupBox:AddToggle("CTAuto", {
-    Text = "Auto CT Teleport + Prompt + Click",
+    Text = "Auto CT All Steps",
     Default = false,
-    Tooltip = "Teleport ke CT, trigger prompt & click otomatis",
+    Tooltip = "Teleport CT, prompt & click, lalu X-Ray",
     Callback = function(state)
         running = state
         task.spawn(function()
@@ -112,15 +133,5 @@ GroupBox:AddToggle("CTAuto", {
     end
 })
 
--- Setup tema dan save
+-- Keybind buka tutup menu
 Library.ToggleKeybind = Options.MenuKeybind
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
-ThemeManager:SetFolder("MyScriptHub")
-SaveManager:SetFolder("MyScriptHub/specific-game")
-SaveManager:SetSubFolder("specific-place")
-SaveManager:BuildConfigSection(Tabs.Main)
