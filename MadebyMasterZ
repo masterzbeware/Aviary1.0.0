@@ -1,4 +1,4 @@
--- Ganti dengan nama pemain asli (client)
+-- Ganti ini dengan nama pemain utama yang ingin diikuti
 local ClientName = "akunoctora"
 
 local Players = game:GetService("Players")
@@ -11,7 +11,7 @@ local follow = false
 local humanoid
 local myRootPart
 
--- Fungsi debug
+-- Fungsi debug log
 local function debugPrint(msg)
 	print("[DEBUG] " .. msg)
 end
@@ -21,27 +21,33 @@ local function updateCharacter()
 	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 	humanoid = character:WaitForChild("Humanoid")
 	myRootPart = character:WaitForChild("HumanoidRootPart")
-	debugPrint("Bot siap.")
+	humanoid.AutoRotate = true
+	debugPrint("Bot siap digunakan.")
 end
 
 -- Fungsi gerak ke targetPos secara normal
-local function moveTo(targetPos)
+local function moveTo(targetPos, faceTo)
 	if humanoid and myRootPart then
 		humanoid:MoveTo(targetPos)
+		humanoid.AutoRotate = false -- agar bisa kita atur arah manual
+		myRootPart.CFrame = CFrame.new(myRootPart.Position, faceTo.Position)
 	end
 end
 
--- Fungsi follow client (jarak 5 studs dari belakang)
+-- Fungsi untuk mengikuti client
 local function followClient()
 	if not client or not client.Character then return end
 	local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
-	if not targetHRP then return end
+	if not targetHRP or not myRootPart then return end
 
-	local targetPos = targetHRP.Position - targetHRP.CFrame.LookVector * 5
-	moveTo(targetPos)
+	-- Arah belakang dari client, hanya di sumbu horizontal
+	local lookVector = Vector3.new(targetHRP.CFrame.LookVector.X, 0, targetHRP.CFrame.LookVector.Z).Unit
+	local targetPos = targetHRP.Position - lookVector * 5 -- Jarak 5 studs di belakang
+
+	moveTo(targetPos, targetHRP)
 end
 
--- Deteksi perintah chat dari client
+-- Fungsi ketika perintah chat diketik oleh client
 local function monitorClient(player)
 	if player.Name == ClientName then
 		client = player
@@ -53,22 +59,25 @@ local function monitorClient(player)
 				debugPrint("Perintah !ikuti diterima.")
 			elseif message == "!stop" then
 				follow = false
-				humanoid:MoveTo(myRootPart.Position) -- berhenti di tempat
+				if humanoid then
+					humanoid:MoveTo(myRootPart.Position) -- berhenti di tempat
+					humanoid.AutoRotate = true
+				end
 				debugPrint("Perintah !stop diterima.")
 			end
 		end)
 	end
 end
 
--- Cek semua pemain yang sudah ada
+-- Cek pemain yang sudah ada
 for _, player in ipairs(Players:GetPlayers()) do
 	monitorClient(player)
 end
 
--- Pantau pemain baru
+-- Pantau pemain baru masuk
 Players.PlayerAdded:Connect(monitorClient)
 
--- Update saat karakter bot respawn
+-- Update karakter jika respawn
 localPlayer.CharacterAdded:Connect(function()
 	updateCharacter()
 end)
@@ -76,9 +85,9 @@ end)
 -- Inisialisasi awal
 updateCharacter()
 
--- Loop per 0.5 detik biar bot tidak spam MoveTo
+-- Loop utama
 while true do
-	task.wait(0.5)
+	task.wait(0.5) -- setengah detik biar ringan
 	if follow then
 		followClient()
 	end
