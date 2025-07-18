@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -37,21 +37,18 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
--- Ganti ini di tiap LDPlayer bot, misal: 1 untuk bot pertama, 2 untuk kedua, dst
-local formasiIndex = 1
-
 -- ✅ UI LEFT
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
-    Text = "Aktifkan Bot",
+    Text = "Aktifkan Bot Follow",
     Default = false,
-    Tooltip = "Nyalakan agar bot siap menerima perintah",
+    Tooltip = "Nyalakan agar bot siap menerima perintah !ikuti",
     Callback = function(Value)
         toggleAktif = Value
 
         if Value then
-            Library:Notify("Bot Diaktifkan", 3)
+            Library:Notify("Bot Follow Diaktifkan", 3)
 
             -- Bersihkan koneksi lama jika ada
             if followConnection then followConnection:Disconnect() end
@@ -60,12 +57,16 @@ GroupBox1:AddToggle("AktifkanFollow", {
             -- Jalankan ulang sistem
             setupBotFollowSystem()
         else
-            Library:Notify("Bot Dimatikan", 3)
+            Library:Notify("Bot Follow Dimatikan", 3)
+
+            -- Matikan follow
             followAllowed = false
 
+            -- Disconnect semua koneksi
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
 
+            -- Hentikan gerakan
             if humanoid and myRootPart then
                 humanoid:MoveTo(myRootPart.Position)
             end
@@ -119,57 +120,54 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Fungsi Baris
-local function masukBarisan()
-    if not toggleAktif or not client or not client.Character then return end
-
-    local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
-    if not targetHRP or not myRootPart then return end
-
-    local forward = -targetHRP.CFrame.LookVector
-    local right = targetHRP.CFrame.RightVector
-    local basePos = targetHRP.Position + forward * jarakIkut
-
-    local offset = (formasiIndex - 1)
-    local dir = offset % 2 == 0 and 1 or -1
-    local shift = math.floor(offset / 2) + 1
-    local finalPos = basePos + (right * dir * shift * 4)
-
-    humanoid:MoveTo(finalPos)
-end
-
 -- ✅ Sistem Follow
 function setupBotFollowSystem()
     updateBotRefs()
 
+    -- Temukan client dan hubungkan event
     local function setupClient(player)
         if player.Name ~= clientName then return end
         client = player
         print("[INFO] Client ditemukan:", player.Name)
 
+        -- Dengarkan perintah !ikuti dan !stop
         followConnection = player.Chatted:Connect(function(msg)
+            msg = msg:lower()
+
             if msg == "!ikuti" then
                 followAllowed = true
-                Library:Notify("Perintah !ikuti diterima!", 3)
+                Library:Notify("Perintah !ikuti diterima, bot mengikuti!", 3)
+
             elseif msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
-                Library:Notify("Perintah !stop diterima!", 3)
-            elseif msg == "!baris" then
-                followAllowed = false
-                masukBarisan()
-                Library:Notify("Perintah !baris diterima!", 3)
+                Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
+
+            elseif msg == "!jaga1" then
+                if tostring(localPlayer.UserId) == "8802945328" and client and client.Character then
+                    local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHRP then
+                        local depanPos = targetHRP.Position + targetHRP.CFrame.LookVector * jarakIkut
+                        humanoid:MoveTo(depanPos)
+                        Library:Notify("Bot (8802945328) menjaga di depan client", 3)
+                    end
+                end
             end
         end)
     end
 
+    -- Cek semua player yang sudah ada
     for _, p in ipairs(Players:GetPlayers()) do
         setupClient(p)
     end
 
+    -- Dengarkan player baru
     Players.PlayerAdded:Connect(setupClient)
+
+    -- Jika karakter bot respawn
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
+    -- Loop follow saat heartbeat
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
