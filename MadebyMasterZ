@@ -1,1 +1,83 @@
+-- Ganti dengan nama pemain asli (client)
+local ClientName = "akunoctora"
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local client = nil
+local follow = false
+
+local humanoid = nil
+local myRootPart = nil
+
+-- Debug print
+local function debugPrint(msg)
+	print("[DEBUG] " .. msg)
+end
+
+-- Update referensi karakter bot
+local function updateBotRefs()
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	humanoid = character:WaitForChild("Humanoid")
+	myRootPart = character:WaitForChild("HumanoidRootPart")
+end
+
+-- Fungsi untuk jalan ke belakang client (5 studs)
+local function followClient()
+	if not client or not client.Character then return end
+	local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+	if not targetHRP or not myRootPart then return end
+
+	local targetPos = targetHRP.Position - targetHRP.CFrame.LookVector * 5
+
+	-- Cek jarak, biar gak bolak-balik terlalu dekat
+	if (myRootPart.Position - targetPos).Magnitude > 2 then
+		humanoid:MoveTo(targetPos)
+		debugPrint("Berjalan ke: " .. tostring(targetPos))
+	end
+end
+
+-- Saat client join atau ditemukan
+local function setupClient(player)
+	if player.Name ~= ClientName then return end
+	client = player
+	debugPrint("Client ditemukan: " .. player.Name)
+
+	-- Dengarkan perintah chat
+	client.Chatted:Connect(function(msg)
+		if msg == "!ikuti" then
+			follow = true
+			debugPrint("Perintah !ikuti diterima")
+		elseif msg == "!stop" then
+			follow = false
+			humanoid:MoveTo(myRootPart.Position) -- berhenti
+			debugPrint("Perintah !stop diterima")
+		end
+	end)
+end
+
+-- Pantau pemain yang sudah ada
+for _, player in ipairs(Players:GetPlayers()) do
+	setupClient(player)
+end
+
+-- Pantau pemain baru
+Players.PlayerAdded:Connect(setupClient)
+
+-- Update karakter saat respawn
+localPlayer.CharacterAdded:Connect(function()
+	debugPrint("Karakter bot spawn ulang.")
+	updateBotRefs()
+end)
+
+-- Inisialisasi awal
+updateBotRefs()
+
+-- Loop gerakan setiap 0.5 detik
+while true do
+	task.wait(0.5)
+	if follow then
+		followClient()
+	end
+end
