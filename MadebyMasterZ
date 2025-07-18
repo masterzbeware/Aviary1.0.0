@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v122.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -115,7 +115,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow
+-- ✅ Sistem Follow dan Jaga
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -142,8 +142,10 @@ function setupBotFollowSystem()
                     if client and client.Character then
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
-                            local jagaPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
-                            humanoid:MoveTo(jagaPos)
+                            local targetPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
+                            local lookAt = targetHRP.Position + targetHRP.CFrame.LookVector * 10
+                            humanoid:MoveTo(targetPos)
+                            myRootPart.CFrame = CFrame.new(targetPos, lookAt)
                         end
                     end
                 end
@@ -156,8 +158,10 @@ function setupBotFollowSystem()
                     if client and client.Character then
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
-                            local jagaPos = targetHRP.Position + targetHRP.CFrame.RightVector * 5
-                            humanoid:MoveTo(jagaPos)
+                            local targetPos = targetHRP.Position + targetHRP.CFrame.RightVector * 5
+                            local lookAt = targetHRP.Position + targetHRP.CFrame.LookVector * 10
+                            humanoid:MoveTo(targetPos)
+                            myRootPart.CFrame = CFrame.new(targetPos, lookAt)
                         end
                     end
                 end
