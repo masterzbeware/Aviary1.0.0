@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -24,8 +24,11 @@ local Tabs = {
 local clientName = ""
 local jarakIkut = 5
 local jarakMinimum = 2
-local followAllowed = false  -- hanya diaktifkan lewat !ikuti
+local followAllowed = false
 local toggleAktif = false
+local followConnection = nil
+local loopTask = nil
+local setupDone = false
 
 -- UI LEFT
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
@@ -36,7 +39,20 @@ GroupBox1:AddToggle("AktifkanFollow", {
     Tooltip = "Aktifkan agar bot siap mengikuti client saat client ketik !ikuti",
     Callback = function(Value)
         toggleAktif = Value
-        Library:Notify(Value and "Follow Siap Dijalankan" or "Follow Dimatikan", 3)
+
+        if Value then
+            Library:Notify("Bot Follow Diaktifkan", 3)
+            if not setupDone then
+                setupBotFollowSystem()
+                setupDone = true
+            end
+        else
+            Library:Notify("Bot Follow Dimatikan", 3)
+            followAllowed = false
+            if loopTask then
+                loopTask:Disconnect()
+            end
+        end
     end,
 })
 
@@ -79,7 +95,7 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- === SCRIPT FOLLOW ===
+-- === FOLLOW SYSTEM ===
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -95,45 +111,38 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- Cari dan dengarkan client
-local function setupClient(player)
-    if player.Name ~= clientName then return end
-    client = player
-    print("[INFO] Client ditemukan:", player.Name)
+-- Listener utama, dipanggil saat toggle aktif
+function setupBotFollowSystem()
+    updateBotRefs()
 
-    player.Chatted:Connect(function(msg)
-        if msg == "!ikuti" then
-            if toggleAktif then
+    local function setupClient(player)
+        if player.Name ~= clientName then return end
+        client = player
+        print("[INFO] Client ditemukan:", player.Name)
+
+        followConnection = player.Chatted:Connect(function(msg)
+            if msg == "!ikuti" then
                 followAllowed = true
                 Library:Notify("Perintah !ikuti diterima, follow dimulai!", 3)
-            else
-                Library:Notify("Aktifkan toggle follow di UI dulu!", 3)
-            end
-        elseif msg == "!stop" then
-            followAllowed = false
-            if humanoid and myRootPart then
+            elseif msg == "!stop" then
+                followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
+                Library:Notify("Bot berhenti!", 3)
             end
-            Library:Notify("Bot berhenti!", 3)
-        end
-    end)
-end
+        end)
+    end
 
--- Pantau semua pemain
-for _, p in ipairs(Players:GetPlayers()) do
-    setupClient(p)
-end
-Players.PlayerAdded:Connect(setupClient)
+    -- Pasang listener client
+    for _, p in ipairs(Players:GetPlayers()) do
+        setupClient(p)
+    end
+    Players.PlayerAdded:Connect(setupClient)
 
--- Update ulang saat respawn
-localPlayer.CharacterAdded:Connect(updateBotRefs)
-updateBotRefs()
+    localPlayer.CharacterAdded:Connect(updateBotRefs)
 
--- Loop gerakan
-task.spawn(function()
-    while true do
-        task.wait(0.5)
-        if toggleAktif and followAllowed and client and client.Character and humanoid and myRootPart then
+    -- Loop gerakan
+    loopTask = RunService.Heartbeat:Connect(function()
+        if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
@@ -143,5 +152,5 @@ task.spawn(function()
                 end
             end
         end
-    end
-end)
+    end)
+end
