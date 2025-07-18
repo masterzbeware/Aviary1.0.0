@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v3.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -130,15 +130,34 @@ function setupBotFollowSystem()
         client = player
         print("[INFO] Client ditemukan:", player.Name)
 
-        -- Dengarkan perintah !ikuti dan !stop
+        -- Dengarkan perintah !ikuti, !stop, !jaga
         followConnection = player.Chatted:Connect(function(msg)
             if msg == "!ikuti" then
                 followAllowed = true
                 Library:Notify("Perintah !ikuti diterima, bot mengikuti!", 3)
+
             elseif msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
+
+            elseif msg == "!jaga" then
+                followAllowed = false
+                Library:Notify("Perintah !jaga diterima, bot menjaga posisi", 3)
+
+                -- Posisi acak: depan, belakang, kiri, kanan
+                if client and client.Character and client.Character:FindFirstChild("HumanoidRootPart") then
+                    local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                    local directions = {
+                        targetHRP.Position + targetHRP.CFrame.LookVector * 5,   -- Depan
+                        targetHRP.Position - targetHRP.CFrame.LookVector * 5,   -- Belakang
+                        targetHRP.Position - targetHRP.CFrame.RightVector * 5,  -- Kiri
+                        targetHRP.Position + targetHRP.CFrame.RightVector * 5   -- Kanan
+                    }
+
+                    local chosenPos = directions[math.random(1, #directions)]
+                    humanoid:MoveTo(chosenPos)
+                end
             end
         end)
     end
