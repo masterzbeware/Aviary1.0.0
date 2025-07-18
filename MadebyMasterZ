@@ -1,186 +1,72 @@
-local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
-local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
-local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
+-- Ganti nama Client di bawah ini dengan nama pemain yang ingin diikuti
+local ClientName = "akunoctora"
 
-local Options = Library.Options
-local Toggles = Library.Toggles
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
-Library.ForceCheckbox = false
-Library.ShowToggleFrameInKeybinds = true
+local localPlayer = Players.LocalPlayer
+local client = nil
+local follow = false
+local baris = false
 
-local Window = Library:CreateWindow({
-    Title = "Made by MasterZ",
-    Footer = "v1.0.0",
-    Icon = 0,
-    NotifySide = "Right",
-    ShowCustomCursor = true,
-})
-
-local Tabs = {
-    Main = Window:AddTab("Main", "user"),
-}
-
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("AutoFarm")
-
-local p = game.Players.LocalPlayer
-local ts = game:GetService("TweenService")
-
-local function tp(pos)
-    local h = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-    if h then
-        ts:Create(h, TweenInfo.new(1), {CFrame = CFrame.new(pos)}):Play()
-        task.wait(1.2)
-    end
+-- Fungsi untuk mencari client
+local function findClient()
+	for _, player in pairs(Players:GetPlayers()) do
+		if player.Name == ClientName then
+			client = player
+			break
+		end
+	end
 end
 
-local function fire(pp)
-    if pp then fireproximityprompt(pp) end
+-- Fungsi untuk mengikuti client
+local function followClient()
+	if not client or not client.Character or not localPlayer.Character then return end
+	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
+	if hrp and targetHrp then
+		hrp.CFrame = CFrame.new(targetHrp.Position + Vector3.new(2, 0, 2))
+	end
 end
 
-local function equip(tool)
-    if tool and not p.Character:FindFirstChild(tool.Name) then
-        tool.Parent = p.Character
-    end
+-- Fungsi untuk baris (berdiri sejajar di belakang client)
+local function barisFormasi()
+	if not client or not client.Character or not localPlayer.Character then return end
+	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
+	if hrp and targetHrp then
+		hrp.CFrame = CFrame.new(targetHrp.Position - targetHrp.CFrame.LookVector * 3)
+	end
 end
 
-local function unequip()
-    local m = p.Character:FindFirstChild("Medication")
-    if m then
-        m.Parent = p.Backpack
-    end
-end
+-- Dengarkan chat client
+Players.PlayerAdded:Connect(function(player)
+	if player.Name == ClientName then
+		client = player
+	end
+end)
 
-LeftGroupBox:AddToggle("AutoFarm", {
-    Text = "Auto Farm (Step by Step)",
-    Default = false,
-    Tooltip = "Computer → Printer → Grab → Submit → Tube → Ulang",
-    Callback = function(Value)
-        if Value then
-            task.spawn(function()
-                while Toggles.AutoFarm.Value do
-                    pcall(function()
-                        -- Step 1: Computer
-                        for _, m in pairs(workspace:GetChildren()) do
-                            local c = m:FindFirstChild("computer2") and m.computer2:FindFirstChild("Cube")
-                            if c then
-                                tp(c.Position + Vector3.new(0, 2, 0))
-                                fire(c:FindFirstChildWhichIsA("ProximityPrompt", true))
-                                break
-                            end
-                        end
-                        task.wait(0.5)
+-- Dengarkan perintah di chat
+Players.PlayerChatted:Connect(function(player, message)
+	if player.Name == ClientName then
+		if message == "!ikuti" then
+			follow = true
+			baris = false
+		elseif message == "!baris" then
+			baris = true
+			follow = false
+		end
+	end
+end)
 
-                        -- Step 2: Printer
-                        local pr = workspace:FindFirstChild("Printerpharmacy")
-                        if pr and pr:FindFirstChild("Union2") then
-                            local u = pr.Union2
-                            tp(u.Position + Vector3.new(0, 2, 0))
-                            fire(u:FindFirstChildWhichIsA("ProximityPrompt", true))
-                        end
-                        task.wait(0.5)
+-- Jalankan per frame
+RunService.RenderStepped:Connect(function()
+	if follow then
+		followClient()
+	elseif baris then
+		barisFormasi()
+	end
+end)
 
-                        -- Step 3: Grab Meds
-                        local s = workspace["Finno_992 | Stocked Pharmacy Shelving"]
-                        local fs = s and s:FindFirstChild("Model") and s.Model:FindFirstChild("FSAtchciken")
-                        local grabbed = false
-                        if fs then
-                            for _, t in pairs(p.Backpack:GetChildren()) do
-                                if t:IsA("Tool") and t.Name:match("Order") then
-                                    equip(t)
-                                    for _, a in pairs(fs:GetDescendants()) do
-                                        if a:IsA("Attachment") and a.Parent:IsA("BasePart") then
-                                            for _, pp in pairs(a:GetChildren()) do
-                                                if pp:IsA("ProximityPrompt") and pp.ActionText then
-                                                    local m = pp.ActionText:match("Grab (.+)"):gsub(" Meds", "")
-                                                    if t.Name == m .. " Order" then
-                                                        tp(a.WorldPosition + Vector3.new(0, 2, 0) + a.Parent.CFrame.LookVector * 2.5)
-                                                        fire(pp)
-                                                        repeat task.wait(0.2) until p.Backpack:FindFirstChild("Medication") or p.Character:FindFirstChild("Medication")
-                                                        unequip()
-                                                        grabbed = true
-                                                        break
-                                                    end
-                                                end
-                                            end
-                                        end
-                                        if grabbed then break end
-                                    end
-                                    break
-                                end
-                            end
-                        end
-                        if not grabbed then return end
-                        task.wait(0.5)
-
-                        -- Step 4: Submit Medication
-                        local submitted = false
-                        local med = p.Backpack:FindFirstChild("Medication")
-                        if med then
-                            equip(med)
-                            local desk = workspace:FindFirstChild("Finno_992 | Pharmacy Front-Desk")
-                            local tray = desk and desk:FindFirstChild("Pill Counting Tray")
-                            local base = tray and tray:FindFirstChild("Base")
-                            if base then
-                                for _, u in pairs(base:GetChildren()) do
-                                    local pp = u:IsA("BasePart") and u:FindFirstChildWhichIsA("ProximityPrompt", true)
-                                    if pp then
-                                        tp(u.Position + Vector3.new(0, 2, 0))
-                                        fire(pp)
-                                        submitted = true
-                                        break
-                                    end
-                                end
-                            end
-                        end
-                        if not submitted then return end
-                        task.wait(0.5)
-
-                        -- Step 5: Tube System
-                        local meds = p.Backpack:FindFirstChild("Meds")
-                        if meds then
-                            equip(meds)
-                            local nearestTube = nil
-                            local shortest = math.huge
-                            local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
-                            if hrp then
-                                for _, t in pairs(workspace:GetChildren()) do
-                                    if t:IsA("Model") and t.Name == "Tubesystem" and t:FindFirstChild("Union") then
-                                        local dist = (t.Union.Position - hrp.Position).Magnitude
-                                        if dist < shortest then
-                                            shortest = dist
-                                            nearestTube = t
-                                        end
-                                    end
-                                end
-                                if nearestTube then
-                                    local union = nearestTube:FindFirstChild("Union")
-                                    if union then
-                                        tp(union.Position + Vector3.new(0, 2, 0))
-                                        fire(union:FindFirstChildWhichIsA("ProximityPrompt", true))
-                                    end
-                                end
-                            end
-                        end
-
-                        -- Step 6: Ulangi
-                        task.wait(1)
-                    end)
-                    task.wait(0.5)
-                end
-            end)
-        end
-    end,
-})
-
--- Theme dan Save
-Library.ToggleKeybind = Options.MenuKeybind
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
-
-SaveManager:IgnoreThemeSettings()
-SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
-
-ThemeManager:SetFolder("MyScriptHub")
-SaveManager:SetFolder("MyScriptHub/specific-game")
-SaveManager:SetSubFolder("specific-place")
+-- Awal: cari client
+findClient()
