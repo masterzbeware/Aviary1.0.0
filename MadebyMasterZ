@@ -1,50 +1,82 @@
 -- Ganti dengan nama pemain asli yang ingin diikuti
-local ClientName = "akunoctora"
+local ClientName = "NamaPemainAsli"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local PathfindingService = game:GetService("PathfindingService")
 
 local localPlayer = Players.LocalPlayer
 local client = nil
 local follow = false
 local baris = false
 
+local humanoid = nil
+local character = nil
+
 -- Debug
 local function debugPrint(msg)
 	print("[DEBUG] " .. msg)
 end
 
--- Fungsi ikuti client
+-- Fungsi update referensi karakter
+local function updateCharacterRefs()
+	character = localPlayer.Character
+	if character then
+		humanoid = character:FindFirstChildOfClass("Humanoid")
+	end
+end
+
+-- Fungsi untuk buat bot jalan kaki ke targetPos
+local function moveToPosition(targetPos)
+	if not humanoid then return end
+
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+		AgentCanClimb = true,
+	})
+
+	path:ComputeAsync(character.HumanoidRootPart.Position, targetPos)
+
+	if path.Status == Enum.PathStatus.Complete then
+		for _, waypoint in ipairs(path:GetWaypoints()) do
+			humanoid:MoveTo(waypoint.Position)
+			humanoid.MoveToFinished:Wait()
+		end
+	else
+		debugPrint("Path gagal ditemukan.")
+	end
+end
+
+-- Fungsi follow client dari belakang (5 studs)
 local function followClient()
-	if not client or not client.Character or not localPlayer.Character then
+	if not client or not client.Character or not character then
 		debugPrint("Follow gagal: karakter belum siap")
 		return
 	end
-	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+
 	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
-	if hrp and targetHrp then
-		local followPos = targetHrp.Position - (targetHrp.CFrame.LookVector * 5)
-		hrp.CFrame = CFrame.new(followPos, targetHrp.Position)
-		debugPrint("Mengikuti client ke posisi: " .. tostring(followPos))
-	end
+	local myHrp = character:FindFirstChild("HumanoidRootPart")
+	if not targetHrp or not myHrp then return end
+
+	local followPos = targetHrp.Position - targetHrp.CFrame.LookVector * 5
+	moveToPosition(followPos)
 end
 
--- Formasi baris (optional)
+-- Fungsi baris (berdiri di belakang client 3 studs)
 local function barisFormasi()
-	if not client or not client.Character or not localPlayer.Character then
-		debugPrint("Baris gagal: karakter belum siap")
-		return
-	end
-	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if not client or not client.Character or not character then return end
+
 	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
-	if hrp and targetHrp then
-		local barisPos = targetHrp.Position - targetHrp.CFrame.LookVector * 3
-		hrp.CFrame = CFrame.new(barisPos, targetHrp.Position)
-		debugPrint("Formasi baris ke posisi: " .. tostring(barisPos))
-	end
+	local myHrp = character:FindFirstChild("HumanoidRootPart")
+	if not targetHrp or not myHrp then return end
+
+	local barisPos = targetHrp.Position - targetHrp.CFrame.LookVector * 3
+	moveToPosition(barisPos)
 end
 
--- Pantau semua pemain yang masuk, dan cek siapa client-nya
+-- Pantau semua chat pemain
 local function onPlayerAdded(player)
 	if player.Name == ClientName then
 		client = player
@@ -66,19 +98,29 @@ local function onPlayerAdded(player)
 	end
 end
 
--- Pas script dijalankan, cek semua pemain
+-- Cek semua pemain yang sudah ada
 for _, player in pairs(Players:GetPlayers()) do
 	onPlayerAdded(player)
 end
 
--- Pantau pemain baru yang join
+-- Deteksi pemain baru
 Players.PlayerAdded:Connect(onPlayerAdded)
 
--- Loop per frame
-RunService.RenderStepped:Connect(function()
+-- Deteksi saat karakter bot respawn
+localPlayer.CharacterAdded:Connect(function()
+	debugPrint("Karakter bot respawn.")
+	updateCharacterRefs()
+end)
+
+-- Update referensi awal
+updateCharacterRefs()
+
+-- Loop per 1 detik untuk update gerakan (tidak terlalu sering)
+while true do
+	task.wait(1)
 	if follow then
 		followClient()
 	elseif baris then
 		barisFormasi()
 	end
-end)
+end
