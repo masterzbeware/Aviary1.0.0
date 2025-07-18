@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v11.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -58,8 +58,10 @@ GroupBox1:AddToggle("AktifkanFollow", {
             Library:Notify("Bot Follow Dimatikan", 3)
 
             followAllowed = false
+
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
+
             if humanoid and myRootPart then
                 humanoid:MoveTo(myRootPart.Position)
             end
@@ -113,6 +115,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
+-- ✅ Sistem Follow
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -131,21 +134,18 @@ function setupBotFollowSystem()
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
 
-            elseif msg == "!formasi" then
-                followAllowed = false
-                Library:Notify("Perintah !formasi diterima!", 3)
+            elseif msg == "!jaga1" then
+                -- Periksa UserId bot
+                if tostring(localPlayer.UserId) == "8802945328" then
+                    followAllowed = false
+                    Library:Notify("Perintah !jaga1 diterima - Bot jaga depan!", 3)
 
-                local targetHRP = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if targetHRP then
-                    local cf = targetHRP.CFrame
-                    local behind = cf.Position - cf.LookVector * jarakIkut
-                    local kananBelakang = behind + cf.RightVector * 3
-
-                    if tostring(localPlayer.UserId) == "8802945328" then
-                        humanoid:MoveTo(kananBelakang)
-                        print("[INFO] Bot 8802945328 bergerak ke posisi formasi (kanan belakang)")
-                    else
-                        print("[INFO] Bot ini belum memiliki posisi formasi.")
+                    if client and client.Character then
+                        local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHRP then
+                            local jagaPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
+                            humanoid:MoveTo(jagaPos)
+                        end
                     end
                 end
             end
@@ -157,7 +157,6 @@ function setupBotFollowSystem()
     end
 
     Players.PlayerAdded:Connect(setupClient)
-
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
