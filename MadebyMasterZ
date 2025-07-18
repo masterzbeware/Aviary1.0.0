@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v7.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -20,7 +20,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- ✅ Variabel Global
+-- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
@@ -37,9 +37,17 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
--- ✅ UI LEFT
-local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
+-- ✅ Posisi Jaga (Shared)
+shared.GuardedPositions = shared.GuardedPositions or {}
+shared.PosisiJagaUserIDs = {
+    Depan = "8802945328",
+    Belakang = "8802949363",
+    Kiri = "8802939883",
+    Kanan = "8802998147"
+}
 
+-- ✅ UI
+local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Aktifkan Bot Follow",
     Default = false,
@@ -78,7 +86,6 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
--- ✅ UI RIGHT
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
@@ -107,14 +114,54 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Update Humanoid dan HRP bot
+-- ✅ Tambahan Input UserID Posisi Jaga
+GroupBox2:AddInput("UserIDDepan", {
+    Default = shared.PosisiJagaUserIDs.Depan,
+    Text = "UserID1 Depan",
+    Placeholder = "Contoh: 8802945328",
+    Callback = function(Value)
+        shared.PosisiJagaUserIDs.Depan = Value
+        print("UserID Depan diatur ke:", Value)
+    end,
+})
+
+GroupBox2:AddInput("UserIDBelakang", {
+    Default = shared.PosisiJagaUserIDs.Belakang,
+    Text = "UserID2 Belakang",
+    Placeholder = "Contoh: 8802949363",
+    Callback = function(Value)
+        shared.PosisiJagaUserIDs.Belakang = Value
+        print("UserID Belakang diatur ke:", Value)
+    end,
+})
+
+GroupBox2:AddInput("UserIDKiri", {
+    Default = shared.PosisiJagaUserIDs.Kiri,
+    Text = "UserID3 Kiri",
+    Placeholder = "Contoh: 8802939883",
+    Callback = function(Value)
+        shared.PosisiJagaUserIDs.Kiri = Value
+        print("UserID Kiri diatur ke:", Value)
+    end,
+})
+
+GroupBox2:AddInput("UserIDKanan", {
+    Default = shared.PosisiJagaUserIDs.Kanan,
+    Text = "UserID4 Kanan",
+    Placeholder = "Contoh: 8802998147",
+    Callback = function(Value)
+        shared.PosisiJagaUserIDs.Kanan = Value
+        print("UserID Kanan diatur ke:", Value)
+    end,
+})
+
+-- ✅ Bot Setup
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow dan Jaga
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -133,6 +180,14 @@ function setupBotFollowSystem()
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
 
+                -- Hapus posisi dari shared.GuardedPositions jika ada
+                for i, pos in ipairs(shared.GuardedPositions) do
+                    if (myRootPart.Position - pos).Magnitude < 1 then
+                        table.remove(shared.GuardedPositions, i)
+                        break
+                    end
+                end
+
             elseif msg == "!jaga" then
                 followAllowed = false
                 Library:Notify("Perintah !jaga diterima, mencari posisi jaga...", 3)
@@ -150,29 +205,41 @@ function setupBotFollowSystem()
                     local found = false
                     for i, pos in ipairs(positions) do
                         local blocked = false
-                        for _, otherPlayer in ipairs(Players:GetPlayers()) do
-                            if otherPlayer ~= localPlayer and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                                local otherHRP = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
-                                if (otherHRP.Position - pos).Magnitude < 3 then
-                                    blocked = true
-                                    break
+
+                        -- Cek shared.GuardedPositions
+                        for _, taken in pairs(shared.GuardedPositions) do
+                            if (taken - pos).Magnitude < 2 then
+                                blocked = true
+                                break
+                            end
+                        end
+
+                        -- Cek pemain lain
+                        if not blocked then
+                            for _, otherPlayer in ipairs(Players:GetPlayers()) do
+                                if otherPlayer ~= localPlayer and otherPlayer.Character and otherPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                                    local otherHRP = otherPlayer.Character:FindFirstChild("HumanoidRootPart")
+                                    if (otherHRP.Position - pos).Magnitude < 3 then
+                                        blocked = true
+                                        break
+                                    end
                                 end
                             end
                         end
 
                         if not blocked then
                             humanoid:MoveTo(pos)
+                            table.insert(shared.GuardedPositions, pos)
+
                             found = true
                             Library:Notify("Bot menjaga posisi ke-" .. i, 2)
 
-                            -- Tunggu dan ubah arah agar bot membelakangi client
                             task.delay(0.5, function()
-                                if myRootPart and targetHRP then
+                                if myRootPart then
                                     local lookDir = (myRootPart.Position - targetHRP.Position).Unit
                                     myRootPart.CFrame = CFrame.new(myRootPart.Position, myRootPart.Position + lookDir)
                                 end
                             end)
-
                             break
                         end
                     end
