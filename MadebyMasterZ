@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v4.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -129,12 +129,29 @@ function setupBotFollowSystem()
 
             if msg == "!ikuti" then
                 followAllowed = true
-                Library:Notify("Perintah !ikuti diterima, bot mengikuti!", 3)
+
+                -- Pindahkan bot ke depan client dan membelakangi
+                if client and client.Character and humanoid and myRootPart then
+                    local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHRP then
+                        local depanPos = targetHRP.Position + targetHRP.CFrame.LookVector * jarakIkut
+                        humanoid:MoveTo(depanPos)
+                        Library:Notify("Bot pindah ke depan client (mulai mode ikuti)", 3)
+
+                        task.spawn(function()
+                            humanoid.MoveToFinished:Wait()
+                            local arahKebalikan = -targetHRP.CFrame.LookVector
+                            local posisi = myRootPart.Position
+                            myRootPart.CFrame = CFrame.new(posisi, posisi + arahKebalikan)
+                            Library:Notify("Bot membelakangi client, siap mengikuti", 3)
+                        end)
+                    end
+                end
 
             elseif msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
-                Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
+                Library:Notify("Bot berhenti dari follow", 3)
 
             elseif msg == "!jaga1" then
                 if tostring(localPlayer.UserId) == "8802945328" and client and client.Character then
@@ -146,15 +163,14 @@ function setupBotFollowSystem()
                     if targetHRP and humanoid and myRootPart then
                         local depanPos = targetHRP.Position + targetHRP.CFrame.LookVector * jarakIkut
                         humanoid:MoveTo(depanPos)
-                        Library:Notify("Bot (8802945328) bergerak ke depan client", 3)
+                        Library:Notify("Bot bergerak ke depan client (mode jaga1)", 3)
 
                         task.spawn(function()
                             humanoid.MoveToFinished:Wait()
-
                             local arahKebalikan = -targetHRP.CFrame.LookVector
                             local posisi = myRootPart.Position
                             myRootPart.CFrame = CFrame.new(posisi, posisi + arahKebalikan)
-                            Library:Notify("Bot membelakangi client", 3)
+                            Library:Notify("Bot membelakangi client dan siap berjaga", 3)
                         end)
                     end
                 end
@@ -177,11 +193,6 @@ function setupBotFollowSystem()
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     humanoid:MoveTo(followPos)
-
-                    -- 🔁 Hadapkan bot ke arah gerak
-                    local arahGerak = (followPos - myRootPart.Position).Unit
-                    local posisi = myRootPart.Position
-                    myRootPart.CFrame = CFrame.new(posisi, posisi + arahGerak)
                 end
             end
         end
