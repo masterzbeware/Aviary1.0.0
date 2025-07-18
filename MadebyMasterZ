@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v12.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -135,7 +135,6 @@ function setupBotFollowSystem()
                 Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
 
             elseif msg == "!jaga1" then
-                -- Periksa UserId bot
                 if tostring(localPlayer.UserId) == "8802945328" then
                     followAllowed = false
                     Library:Notify("Perintah !jaga1 diterima - Bot jaga depan!", 3)
@@ -144,6 +143,20 @@ function setupBotFollowSystem()
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
                             local jagaPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
+                            humanoid:MoveTo(jagaPos)
+                        end
+                    end
+                end
+
+            elseif msg == "!jaga2" then
+                if tostring(localPlayer.UserId) == "8802949363" then
+                    followAllowed = false
+                    Library:Notify("Perintah !jaga2 diterima - Bot jaga kanan!", 3)
+
+                    if client and client.Character then
+                        local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHRP then
+                            local jagaPos = targetHRP.Position + targetHRP.CFrame.RightVector * 5
                             humanoid:MoveTo(jagaPos)
                         end
                     end
