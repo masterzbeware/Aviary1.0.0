@@ -50,23 +50,18 @@ GroupBox1:AddToggle("AktifkanFollow", {
         if Value then
             Library:Notify("Bot Follow Diaktifkan", 3)
 
-            -- Bersihkan koneksi lama jika ada
             if followConnection then followConnection:Disconnect() end
             if loopTask then loopTask:Disconnect() end
 
-            -- Jalankan ulang sistem
             setupBotFollowSystem()
         else
             Library:Notify("Bot Follow Dimatikan", 3)
 
-            -- Matikan follow
             followAllowed = false
 
-            -- Disconnect semua koneksi
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
 
-            -- Hentikan gerakan
             if humanoid and myRootPart then
                 humanoid:MoveTo(myRootPart.Position)
             end
@@ -113,24 +108,22 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Fungsi bantu: update Humanoid & HRP bot
+-- ✅ Update karakter bot
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow
+-- ✅ Setup sistem follow
 function setupBotFollowSystem()
     updateBotRefs()
 
-    -- Temukan client dan hubungkan event
     local function setupClient(player)
         if player.Name ~= clientName then return end
         client = player
         print("[INFO] Client ditemukan:", player.Name)
 
-        -- Dengarkan perintah !ikuti dan !stop
         followConnection = player.Chatted:Connect(function(msg)
             msg = msg:lower()
 
@@ -146,28 +139,32 @@ function setupBotFollowSystem()
             elseif msg == "!jaga1" then
                 if tostring(localPlayer.UserId) == "8802945328" and client and client.Character then
                     local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
-                    if targetHRP then
+                    if targetHRP and humanoid and myRootPart then
                         local depanPos = targetHRP.Position + targetHRP.CFrame.LookVector * jarakIkut
                         humanoid:MoveTo(depanPos)
-                        Library:Notify("Bot (8802945328) menjaga di depan client", 3)
+                        Library:Notify("Bot (8802945328) bergerak ke depan client", 3)
+
+                        task.spawn(function()
+                            humanoid.MoveToFinished:Wait()
+
+                            local arahKebalikan = -targetHRP.CFrame.LookVector
+                            local posisi = myRootPart.Position
+                            myRootPart.CFrame = CFrame.new(posisi, posisi + arahKebalikan)
+                            Library:Notify("Bot membelakangi client", 3)
+                        end)
                     end
                 end
             end
         end)
     end
 
-    -- Cek semua player yang sudah ada
     for _, p in ipairs(Players:GetPlayers()) do
         setupClient(p)
     end
 
-    -- Dengarkan player baru
     Players.PlayerAdded:Connect(setupClient)
-
-    -- Jika karakter bot respawn
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    -- Loop follow saat heartbeat
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
