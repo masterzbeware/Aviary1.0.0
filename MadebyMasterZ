@@ -19,77 +19,124 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- GroupBox1
+-- Input Variabel
+local clientName = ""
+local jarakIkut = 5
+local jarakMinimum = 2
+local followAktif = false
+
+-- UI LEFT
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
 
-GroupBox1:AddToggle("ExampleToggle1", {
-    Text = "Aktifkan",
+GroupBox1:AddToggle("AktifkanFollow", {
+    Text = "Aktifkan Bot Follow",
     Default = false,
-    Tooltip = "Ini toggle untuk mengaktifkan Nama Client.",
+    Tooltip = "Aktifkan agar bot mengikuti client",
     Callback = function(Value)
-        print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
+        followAktif = Value
+        print(Value and "Follow aktif" or "Follow nonaktif")
     end,
 })
 
-GroupBox1:AddInput("Textbox1", {
+GroupBox1:AddInput("NamaClientInput", {
     Default = "",
-    Numeric = false,
-    Finished = false,
     Text = "Nama Client",
-    Tooltip = "Masukkan nama client",
-    Placeholder = "Ketik sesuatu...",
+    Placeholder = "Contoh: MasterZ_YT",
     Callback = function(Value)
-        print("Nama Client:", Value)
+        clientName = Value
+        print("Client diatur ke:", clientName)
     end,
 })
 
--- GroupBox2
-local GroupBox2 = Tabs.Main:AddRightGroupbox("Main Options2")
+-- UI RIGHT
+local GroupBox2 = Tabs.Main:AddRightGroupbox("Jarak & Pengaturan")
 
-GroupBox2:AddToggle("ExampleToggle2", {
-    Text = "Aktifkan",
-    Default = false,
-    Tooltip = "Ini toggle untuk mengaktifkan Nama Bot dan Jarak.",
-    Callback = function(Value)
-        print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
-    end,
-})
-
-GroupBox2:AddInput("Textbox2", {
-    Default = "",
-    Numeric = false,
-    Finished = false,
-    Text = "Nama Bot",
-    Tooltip = "Masukkan nama bot",
-    Placeholder = "Ketik sesuatu juga...",
-    Callback = function(Value)
-        print("Nama Bot:", Value)
-    end,
-})
-
-GroupBox2:AddInput("Textbox3", {
-    Default = "",
-    Numeric = false,
-    Finished = false,
+GroupBox2:AddInput("JarakIkutInput", {
+    Default = "5",
     Text = "Jarak Bot",
-    Tooltip = "Masukan jumlah jarak Bot ",
-    Placeholder = "Ketik sesuatu juga...",
+    Placeholder = "Contoh: 5",
     Callback = function(Value)
-        print("Nama Bot:", Value)
+        local number = tonumber(Value)
+        if number then
+            jarakIkut = number
+            print("Jarak bot diatur ke:", jarakIkut)
+        end
     end,
 })
 
-GroupBox2:AddInput("Textbox4", {
-    Default = "",
-    Numeric = false,
-    Finished = false,
+GroupBox2:AddInput("JarakMinimumInput", {
+    Default = "2",
     Text = "Jarak Minimum Bergerak",
-    Tooltip = "Masukan jumlah jarak Minimum",
-    Placeholder = "Ketik sesuatu juga...",
+    Placeholder = "Contoh: 2",
     Callback = function(Value)
-        print("Nama Bot:", Value)
+        local number = tonumber(Value)
+        if number then
+            jarakMinimum = number
+            print("Jarak minimum diatur ke:", jarakMinimum)
+        end
     end,
 })
 
--- Keybind Toggle Menu
-Library.ToggleKeybind = Options.MenuKeybind
+-- === SCRIPT FOLLOW ===
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local client = nil
+local humanoid = nil
+local myRootPart = nil
+
+local function updateBotRefs()
+    local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+    humanoid = character:WaitForChild("Humanoid")
+    myRootPart = character:WaitForChild("HumanoidRootPart")
+end
+
+-- Cari dan dengarkan client
+local function setupClient(player)
+    if player.Name ~= clientName then return end
+    client = player
+    print("[INFO] Client ditemukan:", player.Name)
+
+    player.Chatted:Connect(function(msg)
+        if msg == "!ikuti" then
+            followAktif = true
+            Library:Notify("Perintah !ikuti diterima", 3)
+        elseif msg == "!stop" then
+            followAktif = false
+            humanoid:MoveTo(myRootPart.Position) -- berhenti
+            Library:Notify("Perintah !stop diterima", 3)
+        end
+    end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    setupClient(p)
+end
+Players.PlayerAdded:Connect(setupClient)
+
+localPlayer.CharacterAdded:Connect(function()
+    updateBotRefs()
+end)
+
+updateBotRefs()
+
+-- Loop Follow
+task.spawn(function()
+    while true do
+        task.wait(0.5)
+        if followAktif and clientName ~= "" and client then
+            if client.Character and humanoid and myRootPart then
+                local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                if targetHRP then
+                    local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
+                    local dist = (myRootPart.Position - followPos).Magnitude
+                    if dist > jarakMinimum then
+                        humanoid:MoveTo(followPos)
+                    end
+                end
+            end
+        end
+    end
+end)
