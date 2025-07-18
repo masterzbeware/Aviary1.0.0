@@ -1,6 +1,5 @@
--- Ganti nama Client di bawah ini
-local ClientName = "akunoctora
-"
+-- Ganti dengan nama pemain asli yang ingin diikuti
+local ClientName = "akunoctora"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,7 +9,7 @@ local client = nil
 local follow = false
 local baris = false
 
--- Debug print
+-- Debug
 local function debugPrint(msg)
 	print("[DEBUG] " .. msg)
 end
@@ -30,7 +29,7 @@ local function followClient()
 	end
 end
 
--- Fungsi baris
+-- Formasi baris (optional)
 local function barisFormasi()
 	if not client or not client.Character or not localPlayer.Character then
 		debugPrint("Baris gagal: karakter belum siap")
@@ -45,44 +44,37 @@ local function barisFormasi()
 	end
 end
 
--- Hubungkan event chat
-local function connectClientChat()
-	if not client then return end
-	client.Chatted:Connect(function(message)
-		if message == "!ikuti" then
-			follow = true
-			baris = false
-			debugPrint("Perintah diterima: !ikuti")
-		elseif message == "!baris" then
-			baris = true
-			follow = false
-			debugPrint("Perintah diterima: !baris")
-		else
-			debugPrint("Perintah tidak dikenal: " .. message)
-		end
-	end)
-	debugPrint("Terhubung ke chat client.")
+-- Pantau semua pemain yang masuk, dan cek siapa client-nya
+local function onPlayerAdded(player)
+	if player.Name == ClientName then
+		client = player
+		debugPrint("Client ditemukan: " .. client.Name)
+
+		player.Chatted:Connect(function(message)
+			if message == "!ikuti" then
+				follow = true
+				baris = false
+				debugPrint("Perintah diterima: !ikuti")
+			elseif message == "!baris" then
+				baris = true
+				follow = false
+				debugPrint("Perintah diterima: !baris")
+			else
+				debugPrint("Pesan dari client: " .. message)
+			end
+		end)
+	end
 end
 
--- Coba cari client di awal
+-- Pas script dijalankan, cek semua pemain
 for _, player in pairs(Players:GetPlayers()) do
-	if player.Name == ClientName then
-		client = player
-		debugPrint("Client ditemukan: " .. player.Name)
-		connectClientChat()
-	end
+	onPlayerAdded(player)
 end
 
--- Jika client join belakangan
-Players.PlayerAdded:Connect(function(player)
-	if player.Name == ClientName then
-		client = player
-		debugPrint("Client join: " .. player.Name)
-		connectClientChat()
-	end
-end)
+-- Pantau pemain baru yang join
+Players.PlayerAdded:Connect(onPlayerAdded)
 
--- Loop utama
+-- Loop per frame
 RunService.RenderStepped:Connect(function()
 	if follow then
 		followClient()
