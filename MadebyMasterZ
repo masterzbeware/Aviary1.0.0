@@ -138,7 +138,6 @@ function setupBotFollowSystem()
 
             elseif msg == "!jaga1" then
                 if tostring(localPlayer.UserId) == "8802945328" and client and client.Character then
-                    -- ⛔ Matikan follow
                     followAllowed = false
                     humanoid:MoveTo(myRootPart.Position)
                     Library:Notify("Follow dimatikan karena menjalankan !jaga1", 3)
@@ -178,6 +177,11 @@ function setupBotFollowSystem()
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     humanoid:MoveTo(followPos)
+
+                    -- 🔁 Hadapkan bot ke arah gerak
+                    local arahGerak = (followPos - myRootPart.Position).Unit
+                    local posisi = myRootPart.Position
+                    myRootPart.CFrame = CFrame.new(posisi, posisi + arahGerak)
                 end
             end
         end
