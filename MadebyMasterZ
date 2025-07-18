@@ -39,12 +39,6 @@ local client = nil
 
 -- ✅ Posisi Jaga (Shared)
 shared.GuardedPositions = shared.GuardedPositions or {}
-shared.PosisiJagaUserIDs = {
-    Depan = "8802945328",
-    Belakang = "8802949363",
-    Kiri = "8802939883",
-    Kanan = "8802998147"
-}
 
 -- ✅ UI
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
@@ -111,47 +105,6 @@ GroupBox2:AddInput("JarakMinimumInput", {
             jarakMinimum = number
             print("Jarak minimum diatur ke:", jarakMinimum)
         end
-    end,
-})
-
--- ✅ Tambahan Input UserID Posisi Jaga
-GroupBox2:AddInput("UserIDDepan", {
-    Default = shared.PosisiJagaUserIDs.Depan,
-    Text = "UserID1 Depan",
-    Placeholder = "Contoh: 8802945328",
-    Callback = function(Value)
-        shared.PosisiJagaUserIDs.Depan = Value
-        print("UserID Depan diatur ke:", Value)
-    end,
-})
-
-GroupBox2:AddInput("UserIDBelakang", {
-    Default = shared.PosisiJagaUserIDs.Belakang,
-    Text = "UserID2 Belakang",
-    Placeholder = "Contoh: 8802949363",
-    Callback = function(Value)
-        shared.PosisiJagaUserIDs.Belakang = Value
-        print("UserID Belakang diatur ke:", Value)
-    end,
-})
-
-GroupBox2:AddInput("UserIDKiri", {
-    Default = shared.PosisiJagaUserIDs.Kiri,
-    Text = "UserID3 Kiri",
-    Placeholder = "Contoh: 8802939883",
-    Callback = function(Value)
-        shared.PosisiJagaUserIDs.Kiri = Value
-        print("UserID Kiri diatur ke:", Value)
-    end,
-})
-
-GroupBox2:AddInput("UserIDKanan", {
-    Default = shared.PosisiJagaUserIDs.Kanan,
-    Text = "UserID4 Kanan",
-    Placeholder = "Contoh: 8802998147",
-    Callback = function(Value)
-        shared.PosisiJagaUserIDs.Kanan = Value
-        print("UserID Kanan diatur ke:", Value)
     end,
 })
 
