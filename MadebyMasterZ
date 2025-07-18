@@ -79,5 +79,17 @@ GroupBox2:AddInput("Textbox3", {
     end,
 })
 
+GroupBox2:AddInput("Textbox4", {
+    Default = "",
+    Numeric = false,
+    Finished = false,
+    Text = "Jarak Minimum Bergerak",
+    Tooltip = "Masukan jumlah jarak Minimum",
+    Placeholder = "Ketik sesuatu juga...",
+    Callback = function(Value)
+        print("Nama Bot:", Value)
+    end,
+})
+
 -- Keybind Toggle Menu
 Library.ToggleKeybind = Options.MenuKeybind
