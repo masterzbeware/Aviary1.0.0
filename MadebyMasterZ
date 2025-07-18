@@ -1,1 +1,74 @@
+-- Ganti dengan nama pemain client
+local ClientName = "akunoctora"
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local client = nil
+local follow = false
+
+local humanoid
+local hrp
+
+-- Fungsi ambil referensi karakter bot
+local function setupBot()
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	humanoid = character:WaitForChild("Humanoid")
+	hrp = character:WaitForChild("HumanoidRootPart")
+end
+
+-- Fungsi untuk jalan ke posisi target (pakai MoveTo, bukan teleport)
+local function walkTo(position)
+	if humanoid then
+		humanoid:MoveTo(position)
+	end
+end
+
+-- Fungsi ikuti client (jalan ke belakangnya sejauh 5 studs)
+local function followClient()
+	if not client or not client.Character then return end
+
+	local clientHRP = client.Character:FindFirstChild("HumanoidRootPart")
+	if not clientHRP or not hrp then return end
+
+	local targetPos = clientHRP.Position - clientHRP.CFrame.LookVector * 5
+	walkTo(targetPos)
+end
+
+-- Dengarkan perintah dari client
+local function monitorClient(player)
+	if player.Name ~= ClientName then return end
+	client = player
+	print("[BOT] Client ditemukan: " .. player.Name)
+
+	player.Chatted:Connect(function(msg)
+		if msg == "!ikuti" then
+			print("[BOT] Perintah !ikuti diterima.")
+			follow = true
+		elseif msg == "!stop" then
+			print("[BOT] Perintah !stop diterima.")
+			follow = false
+			humanoid:MoveTo(hrp.Position) -- berhenti
+		end
+	end)
+end
+
+-- Setup awal
+setupBot()
+
+-- Cek semua pemain saat mulai
+for _, p in ipairs(Players:GetPlayers()) do
+	monitorClient(p)
+end
+
+-- Cek pemain baru
+Players.PlayerAdded:Connect(monitorClient)
+
+-- Loop per 1 detik biar nggak spam jalan
+while true do
+	task.wait(1)
+	if follow then
+		followClient()
+	end
+end
