@@ -1,4 +1,4 @@
--- Ganti ini dengan nama pemain utama yang ingin diikuti
+-- Ganti nama client sesuai nama pemain asli
 local ClientName = "akunoctora"
 
 local Players = game:GetService("Players")
@@ -9,85 +9,81 @@ local client = nil
 local follow = false
 
 local humanoid
-local myRootPart
+local hrp
 
--- Fungsi debug log
-local function debugPrint(msg)
-	print("[DEBUG] " .. msg)
-end
-
--- Update referensi karakter bot
-local function updateCharacter()
+-- Setup karakter bot
+local function setupCharacter()
 	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
 	humanoid = character:WaitForChild("Humanoid")
-	myRootPart = character:WaitForChild("HumanoidRootPart")
-	humanoid.AutoRotate = true
-	debugPrint("Bot siap digunakan.")
+	hrp = character:WaitForChild("HumanoidRootPart")
 end
 
--- Fungsi gerak ke targetPos secara normal
-local function moveTo(targetPos, faceTo)
-	if humanoid and myRootPart then
-		humanoid:MoveTo(targetPos)
-		humanoid.AutoRotate = false -- agar bisa kita atur arah manual
-		myRootPart.CFrame = CFrame.new(myRootPart.Position, faceTo.Position)
+-- Fungsi untuk membuat bot berjalan ke posisi target
+local function walkTo(position)
+	if humanoid then
+		humanoid:MoveTo(position)
 	end
 end
 
--- Fungsi untuk mengikuti client
+-- Fungsi utama: mengikuti client sejajar dari belakang
 local function followClient()
-	if not client or not client.Character then return end
-	local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
-	if not targetHRP or not myRootPart then return end
+	if not client or not client.Character or not humanoid or not hrp then return end
 
-	-- Arah belakang dari client, hanya di sumbu horizontal
-	local lookVector = Vector3.new(targetHRP.CFrame.LookVector.X, 0, targetHRP.CFrame.LookVector.Z).Unit
-	local targetPos = targetHRP.Position - lookVector * 5 -- Jarak 5 studs di belakang
+	local clientHRP = client.Character:FindFirstChild("HumanoidRootPart")
+	if not clientHRP then return end
 
-	moveTo(targetPos, targetHRP)
+	-- Posisi target: 5 studs di belakang client
+	local targetPos = clientHRP.Position - clientHRP.CFrame.LookVector * 5
+
+	local distance = (hrp.Position - targetPos).Magnitude
+
+	if distance > 6 then
+		-- Terlalu jauh dari posisi ideal, mulai jalan
+		walkTo(targetPos)
+	elseif distance < 3 then
+		-- Terlalu dekat, perbaiki posisi mundur sedikit
+		local adjustPos = hrp.Position - hrp.CFrame.LookVector * 2
+		humanoid:MoveTo(adjustPos)
+	else
+		-- Sudah ideal, diam
+		humanoid:MoveTo(hrp.Position)
+	end
 end
 
--- Fungsi ketika perintah chat diketik oleh client
-local function monitorClient(player)
+-- Dengarkan chat client
+local function setupClientChat(player)
 	if player.Name == ClientName then
 		client = player
-		debugPrint("Client ditemukan: " .. client.Name)
+		print("[DEBUG] Client ditemukan: " .. player.Name)
 
-		player.Chatted:Connect(function(message)
-			if message == "!ikuti" then
+		player.Chatted:Connect(function(msg)
+			if msg == "!ikuti" then
 				follow = true
-				debugPrint("Perintah !ikuti diterima.")
-			elseif message == "!stop" then
+				print("[DEBUG] Perintah !ikuti diterima")
+			elseif msg == "!stop" then
 				follow = false
-				if humanoid then
-					humanoid:MoveTo(myRootPart.Position) -- berhenti di tempat
-					humanoid.AutoRotate = true
-				end
-				debugPrint("Perintah !stop diterima.")
+				humanoid:MoveTo(hrp.Position)
+				print("[DEBUG] Perintah !stop diterima")
 			end
 		end)
 	end
 end
 
--- Cek pemain yang sudah ada
-for _, player in ipairs(Players:GetPlayers()) do
-	monitorClient(player)
+-- Saat pemain join
+Players.PlayerAdded:Connect(setupClientChat)
+
+-- Cek pemain yang sudah ada dulu
+for _, p in pairs(Players:GetPlayers()) do
+	setupClientChat(p)
 end
 
--- Pantau pemain baru masuk
-Players.PlayerAdded:Connect(monitorClient)
-
--- Update karakter jika respawn
-localPlayer.CharacterAdded:Connect(function()
-	updateCharacter()
-end)
-
--- Inisialisasi awal
-updateCharacter()
+-- Saat karakter bot spawn
+localPlayer.CharacterAdded:Connect(setupCharacter)
+setupCharacter()
 
 -- Loop utama
 while true do
-	task.wait(0.5) -- setengah detik biar ringan
+	task.wait(0.5)
 	if follow then
 		followClient()
 	end
