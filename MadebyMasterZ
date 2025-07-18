@@ -1,6 +1,5 @@
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
-local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
 
 local Options = Library.Options
 local Toggles = Library.Toggles
@@ -20,7 +19,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- GroupBox 1 (Kiri)
+-- GroupBox1
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
 
 GroupBox1:AddToggle("ExampleToggle1", {
@@ -37,14 +36,14 @@ GroupBox1:AddInput("Textbox1", {
     Numeric = false,
     Finished = false,
     Text = "Textbox 1",
+    Tooltip = "Masukkan sesuatu di sini",
     Placeholder = "Ketik sesuatu...",
-    Tooltip = "Masukkan teks di sini.",
     Callback = function(Value)
-        print("Textbox 1:", Value)
+        print("Textbox1 diisi:", Value)
     end,
 })
 
--- GroupBox 2 (Kanan)
+-- GroupBox2
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Main Options2")
 
 GroupBox2:AddToggle("ExampleToggle2", {
@@ -61,14 +60,12 @@ GroupBox2:AddInput("Textbox2", {
     Numeric = false,
     Finished = false,
     Text = "Textbox 2",
+    Tooltip = "Masukkan sesuatu juga di sini",
     Placeholder = "Ketik sesuatu juga...",
-    Tooltip = "Masukkan teks lainnya.",
     Callback = function(Value)
-        print("Textbox 2:", Value)
+        print("Textbox2 diisi:", Value)
     end,
 })
 
--- Theme Manager tetap bisa dipakai
+-- Keybind Toggle Menu
 Library.ToggleKeybind = Options.MenuKeybind
-ThemeManager:SetLibrary(Library)
-ThemeManager:SetFolder("MyScriptHub")
