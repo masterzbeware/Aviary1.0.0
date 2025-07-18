@@ -1,4 +1,4 @@
--- UI Library Setup
+-- ✅ Obsidian UI Setup
 local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
 local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
 
@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -20,37 +20,47 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- Input Variabel
+-- ✅ Variabel & State
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local localPlayer = Players.LocalPlayer
+
 local clientName = ""
 local jarakIkut = 5
 local jarakMinimum = 2
-local followAllowed = false
 local toggleAktif = false
+local followAllowed = false
 local followConnection = nil
 local loopTask = nil
-local setupDone = false
+local humanoid = nil
+local myRootPart = nil
+local client = nil
 
--- UI LEFT
-local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
+-- ✅ UI LEFT
+local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Aktifkan Bot Follow",
     Default = false,
-    Tooltip = "Aktifkan agar bot siap mengikuti client saat client ketik !ikuti",
+    Tooltip = "Nyalakan agar bot siap menerima perintah !ikuti",
     Callback = function(Value)
         toggleAktif = Value
 
         if Value then
             Library:Notify("Bot Follow Diaktifkan", 3)
-            if not setupDone then
-                setupBotFollowSystem()
-                setupDone = true
-            end
+
+            -- Disconnect lama dulu
+            if followConnection then followConnection:Disconnect() end
+            if loopTask then loopTask:Disconnect() end
+
+            setupBotFollowSystem()
         else
             Library:Notify("Bot Follow Dimatikan", 3)
             followAllowed = false
-            if loopTask then
-                loopTask:Disconnect()
+
+            if loopTask then loopTask:Disconnect() end
+            if humanoid and myRootPart then
+                humanoid:MoveTo(myRootPart.Position)
             end
         end
     end,
@@ -66,8 +76,8 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
--- UI RIGHT
-local GroupBox2 = Tabs.Main:AddRightGroupbox("Jarak & Pengaturan")
+-- ✅ UI RIGHT
+local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
@@ -95,23 +105,14 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- === FOLLOW SYSTEM ===
-
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-
-local localPlayer = Players.LocalPlayer
-local client = nil
-local humanoid = nil
-local myRootPart = nil
-
+-- ✅ Fungsi bantu: update Humanoid & HRP bot
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- Listener utama, dipanggil saat toggle aktif
+-- ✅ Sistem follow
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -123,16 +124,15 @@ function setupBotFollowSystem()
         followConnection = player.Chatted:Connect(function(msg)
             if msg == "!ikuti" then
                 followAllowed = true
-                Library:Notify("Perintah !ikuti diterima, follow dimulai!", 3)
+                Library:Notify("Perintah !ikuti diterima, bot mengikuti!", 3)
             elseif msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
-                Library:Notify("Bot berhenti!", 3)
+                Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
             end
         end)
     end
 
-    -- Pasang listener client
     for _, p in ipairs(Players:GetPlayers()) do
         setupClient(p)
     end
@@ -140,7 +140,6 @@ function setupBotFollowSystem()
 
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    -- Loop gerakan
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
