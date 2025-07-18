@@ -21,51 +21,49 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- === Option 1 ===
-local Option1 = Tabs.Main:AddLeftGroupbox("Option 1")
+-- Groupbox kiri: Main Options1
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main Options1")
 
-Option1:AddToggle("Option1Toggle", {
-    Text = "Enable Option 1",
+-- Groupbox kanan: Main Options2
+local RightGroupBox = Tabs.Main:AddRightGroupbox("Main Options2")
+
+-- Toggle di Main Options1
+LeftGroupBox:AddToggle("ExampleToggle", {
+    Text = "Contoh Toggle",
     Default = false,
-    Tooltip = "Toggle untuk Option 1",
+    Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
     Callback = function(Value)
-        print("Option 1 Toggle:", Value)
+        if Value then
+            print("Contoh Toggle aktif")
+        else
+            print("Contoh Toggle nonaktif")
+        end
     end,
 })
 
-Option1:AddInput("Option1Input", {
+-- TextBox1 di Main Options1
+LeftGroupBox:AddInput("TextBox1", {
     Default = "",
     Numeric = false,
     Finished = false,
-    Text = "Option 1 Input",
-    Tooltip = "Textbox untuk Option 1",
-    Placeholder = "Isi untuk Option 1...",
+    Text = "Textbox 1",
+    Tooltip = "Masukkan teks untuk keperluan pertama",
+    Placeholder = "Ketik sesuatu...",
     Callback = function(Value)
-        print("Isi TextBox Option 1:", Value)
+        print("Isi TextBox 1:", Value)
     end,
 })
 
--- === Option 2 ===
-local Option2 = Tabs.Main:AddRightGroupbox("Option 2")
-
-Option2:AddToggle("Option2Toggle", {
-    Text = "Enable Option 2",
-    Default = false,
-    Tooltip = "Toggle untuk Option 2",
-    Callback = function(Value)
-        print("Option 2 Toggle:", Value)
-    end,
-})
-
-Option2:AddInput("Option2Input", {
+-- TextBox2 di Main Options2
+RightGroupBox:AddInput("TextBox2", {
     Default = "",
     Numeric = false,
     Finished = false,
-    Text = "Option 2 Input",
-    Tooltip = "Textbox untuk Option 2",
-    Placeholder = "Isi untuk Option 2...",
+    Text = "Textbox 2",
+    Tooltip = "Masukkan teks untuk keperluan kedua",
+    Placeholder = "Ketik sesuatu juga...",
     Callback = function(Value)
-        print("Isi TextBox Option 2:", Value)
+        print("Isi TextBox 2:", Value)
     end,
 })
 
@@ -80,4 +78,3 @@ SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 ThemeManager:SetFolder("MyScriptHub")
 SaveManager:SetFolder("MyScriptHub/specific-game")
 SaveManager:SetSubFolder("specific-place")
-
