@@ -1,5 +1,5 @@
 -- Ganti nama Client di bawah ini dengan nama pemain yang ingin diikuti
-local ClientName = "NamaPemainClient"
+local ClientName = "akunoctora"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
