@@ -1,4 +1,4 @@
--- Ganti dengan nama pemain asli yang ingin diikuti
+-- Ganti dengan nama pemain yang jadi client
 local ClientName = "akunoctora"
 
 local Players = game:GetService("Players")
@@ -10,25 +10,24 @@ local client = nil
 local follow = false
 local baris = false
 
-local humanoid = nil
-local character = nil
+local humanoid
+local myRootPart
 
--- Debug
+-- Fungsi update referensi karakter bot
+local function updateBotRefs()
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	humanoid = character:WaitForChild("Humanoid")
+	myRootPart = character:WaitForChild("HumanoidRootPart")
+end
+
+-- Debug log
 local function debugPrint(msg)
 	print("[DEBUG] " .. msg)
 end
 
--- Fungsi update referensi karakter
-local function updateCharacterRefs()
-	character = localPlayer.Character
-	if character then
-		humanoid = character:FindFirstChildOfClass("Humanoid")
-	end
-end
-
 -- Fungsi untuk buat bot jalan kaki ke targetPos
-local function moveToPosition(targetPos)
-	if not humanoid then return end
+local function moveTo(targetPos)
+	if not humanoid or not myRootPart then return end
 
 	local path = PathfindingService:CreatePath({
 		AgentRadius = 2,
@@ -36,8 +35,7 @@ local function moveToPosition(targetPos)
 		AgentCanJump = true,
 		AgentCanClimb = true,
 	})
-
-	path:ComputeAsync(character.HumanoidRootPart.Position, targetPos)
+	path:ComputeAsync(myRootPart.Position, targetPos)
 
 	if path.Status == Enum.PathStatus.Complete then
 		for _, waypoint in ipairs(path:GetWaypoints()) do
@@ -45,79 +43,72 @@ local function moveToPosition(targetPos)
 			humanoid.MoveToFinished:Wait()
 		end
 	else
-		debugPrint("Path gagal ditemukan.")
+		debugPrint("Gagal mencari jalan.")
 	end
 end
 
--- Fungsi follow client dari belakang (5 studs)
+-- Fungsi jalan ke belakang client (jarak 5 studs)
 local function followClient()
-	if not client or not client.Character or not character then
-		debugPrint("Follow gagal: karakter belum siap")
-		return
-	end
+	if not client or not client.Character or not humanoid then return end
 
-	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
-	local myHrp = character:FindFirstChild("HumanoidRootPart")
-	if not targetHrp or not myHrp then return end
+	local targetRoot = client.Character:FindFirstChild("HumanoidRootPart")
+	if not targetRoot then return end
 
-	local followPos = targetHrp.Position - targetHrp.CFrame.LookVector * 5
-	moveToPosition(followPos)
+	local followPosition = targetRoot.Position - targetRoot.CFrame.LookVector * 5
+	moveTo(followPosition)
 end
 
--- Fungsi baris (berdiri di belakang client 3 studs)
+-- Fungsi jalan ke posisi baris (jarak 3 studs di belakang)
 local function barisFormasi()
-	if not client or not client.Character or not character then return end
+	if not client or not client.Character or not humanoid then return end
 
-	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
-	local myHrp = character:FindFirstChild("HumanoidRootPart")
-	if not targetHrp or not myHrp then return end
+	local targetRoot = client.Character:FindFirstChild("HumanoidRootPart")
+	if not targetRoot then return end
 
-	local barisPos = targetHrp.Position - targetHrp.CFrame.LookVector * 3
-	moveToPosition(barisPos)
+	local barisPosition = targetRoot.Position - targetRoot.CFrame.LookVector * 3
+	moveTo(barisPosition)
 end
 
--- Pantau semua chat pemain
-local function onPlayerAdded(player)
-	if player.Name == ClientName then
-		client = player
-		debugPrint("Client ditemukan: " .. client.Name)
+-- Saat client join atau ditemukan
+local function handleClient(player)
+	if player.Name ~= ClientName then return end
+	client = player
+	debugPrint("Client ditemukan: " .. player.Name)
 
-		player.Chatted:Connect(function(message)
-			if message == "!ikuti" then
-				follow = true
-				baris = false
-				debugPrint("Perintah diterima: !ikuti")
-			elseif message == "!baris" then
-				baris = true
-				follow = false
-				debugPrint("Perintah diterima: !baris")
-			else
-				debugPrint("Pesan dari client: " .. message)
-			end
-		end)
-	end
+	-- Dengarkan perintah chat
+	player.Chatted:Connect(function(message)
+		if message == "!ikuti" then
+			follow = true
+			baris = false
+			debugPrint("Perintah !ikuti diterima")
+		elseif message == "!baris" then
+			baris = true
+			follow = false
+			debugPrint("Perintah !baris diterima")
+		end
+	end)
 end
 
--- Cek semua pemain yang sudah ada
-for _, player in pairs(Players:GetPlayers()) do
-	onPlayerAdded(player)
+-- Pantau semua pemain
+for _, p in ipairs(Players:GetPlayers()) do
+	handleClient(p)
 end
 
--- Deteksi pemain baru
-Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerAdded:Connect(handleClient)
 
--- Deteksi saat karakter bot respawn
+-- Update saat karakter bot spawn
 localPlayer.CharacterAdded:Connect(function()
-	debugPrint("Karakter bot respawn.")
-	updateCharacterRefs()
+	debugPrint("Karakter bot muncul.")
+	updateBotRefs()
 end)
 
--- Update referensi awal
-updateCharacterRefs()
+-- Inisialisasi awal
+updateBotRefs()
 
--- Loop per 1 detik untuk update gerakan (tidak terlalu sering)
+-- Loop tiap 1 detik biar bot tidak spam jalan
 while true do
 	task.wait(1)
+
 	if follow then
 		followClient()
 	elseif baris then
