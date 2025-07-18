@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v11.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -143,9 +143,7 @@ function setupBotFollowSystem()
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
                             local jagaPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
-                            local lookDirection = targetHRP.CFrame.LookVector
-                            local newCFrame = CFrame.new(jagaPos, jagaPos + lookDirection)
-                            myRootPart.CFrame = newCFrame
+                            humanoid:MoveTo(jagaPos)
                         end
                     end
                 end
@@ -159,9 +157,21 @@ function setupBotFollowSystem()
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
                             local jagaPos = targetHRP.Position + targetHRP.CFrame.RightVector * 5
-                            local lookDirection = targetHRP.CFrame.RightVector
-                            local newCFrame = CFrame.new(jagaPos, jagaPos + lookDirection)
-                            myRootPart.CFrame = newCFrame
+                            humanoid:MoveTo(jagaPos)
+                        end
+                    end
+                end
+
+            elseif msg == "!jaga3" then
+                if tostring(localPlayer.UserId) == "8802939883" then
+                    followAllowed = false
+                    Library:Notify("Perintah !jaga3 diterima - Bot jaga kiri!", 3)
+
+                    if client and client.Character then
+                        local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                        if targetHRP then
+                            local jagaPos = targetHRP.Position - targetHRP.CFrame.RightVector * 5
+                            humanoid:MoveTo(jagaPos)
                         end
                     end
                 end
