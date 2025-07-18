@@ -28,12 +28,12 @@ local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Main Options2")
 
 -- ======= Main Options1 =======
-GroupBox1:AddToggle("ExampleToggle", {
+GroupBox1:AddToggle("ExampleToggle1", {
     Text = "Contoh Toggle",
     Default = false,
     Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
     Callback = function(Value)
-        print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
+        print(Value and "Contoh Toggle (1) aktif" or "Contoh Toggle (1) nonaktif")
     end,
 })
 
@@ -50,15 +50,6 @@ GroupBox1:AddInput("TextBox1", {
 })
 
 -- ======= Main Options2 =======
-GroupBox2:AddToggle("ExtraToggle", {
-    Text = "Toggle Tambahan",
-    Default = false,
-    Tooltip = "Toggle di groupbox kedua.",
-    Callback = function(Value)
-        print(Value and "Toggle Tambahan aktif" or "Toggle Tambahan nonaktif")
-    end,
-})
-
 GroupBox2:AddInput("TextBox2", {
     Default = "",
     Numeric = false,
@@ -68,6 +59,15 @@ GroupBox2:AddInput("TextBox2", {
     Placeholder = "Ketik sesuatu juga...",
     Callback = function(Value)
         print("Isi TextBox 2:", Value)
+    end,
+})
+
+GroupBox2:AddToggle("ExampleToggle2", {
+    Text = "Contoh Toggle",
+    Default = false,
+    Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
+    Callback = function(Value)
+        print(Value and "Contoh Toggle (2) aktif" or "Contoh Toggle (2) nonaktif")
     end,
 })
 
