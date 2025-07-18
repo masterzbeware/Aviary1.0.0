@@ -18,7 +18,7 @@ local function setupBot()
 	hrp = character:WaitForChild("HumanoidRootPart")
 end
 
--- Fungsi untuk jalan ke posisi target (pakai MoveTo, bukan teleport)
+-- Fungsi untuk jalan ke posisi target (pakai MoveTo)
 local function walkTo(position)
 	if humanoid then
 		humanoid:MoveTo(position)
@@ -49,7 +49,9 @@ local function monitorClient(player)
 		elseif msg == "!stop" then
 			print("[BOT] Perintah !stop diterima.")
 			follow = false
-			humanoid:MoveTo(hrp.Position) -- berhenti
+			if humanoid and hrp then
+				humanoid:MoveTo(hrp.Position) -- berhenti di tempat
+			end
 		end
 	end)
 end
@@ -65,7 +67,7 @@ end
 -- Cek pemain baru
 Players.PlayerAdded:Connect(monitorClient)
 
--- Loop per 1 detik biar nggak spam jalan
+-- Loop per 1 detik
 while true do
 	task.wait(1)
 	if follow then
