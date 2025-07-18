@@ -21,45 +21,51 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main Options")
+-- === Option 1 ===
+local Option1 = Tabs.Main:AddLeftGroupbox("Option 1")
 
--- Toggle Contoh
-LeftGroupBox:AddToggle("ExampleToggle", {
-    Text = "Contoh Toggle",
+Option1:AddToggle("Option1Toggle", {
+    Text = "Enable Option 1",
     Default = false,
-    Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
+    Tooltip = "Toggle untuk Option 1",
     Callback = function(Value)
-        if Value then
-            print("Contoh Toggle aktif")
-        else
-            print("Contoh Toggle nonaktif")
-        end
+        print("Option 1 Toggle:", Value)
     end,
 })
 
--- TextBox Pertama
-LeftGroupBox:AddInput("TextBox1", {
+Option1:AddInput("Option1Input", {
     Default = "",
     Numeric = false,
     Finished = false,
-    Text = "Textbox 1",
-    Tooltip = "Masukkan teks untuk keperluan pertama",
-    Placeholder = "Ketik sesuatu...",
+    Text = "Option 1 Input",
+    Tooltip = "Textbox untuk Option 1",
+    Placeholder = "Isi untuk Option 1...",
     Callback = function(Value)
-        print("Isi TextBox 1:", Value)
+        print("Isi TextBox Option 1:", Value)
     end,
 })
 
--- TextBox Kedua
-LeftGroupBox:AddInput("TextBox2", {
+-- === Option 2 ===
+local Option2 = Tabs.Main:AddRightGroupbox("Option 2")
+
+Option2:AddToggle("Option2Toggle", {
+    Text = "Enable Option 2",
+    Default = false,
+    Tooltip = "Toggle untuk Option 2",
+    Callback = function(Value)
+        print("Option 2 Toggle:", Value)
+    end,
+})
+
+Option2:AddInput("Option2Input", {
     Default = "",
     Numeric = false,
     Finished = false,
-    Text = "Textbox 2",
-    Tooltip = "Masukkan teks untuk keperluan kedua",
-    Placeholder = "Ketik sesuatu juga...",
+    Text = "Option 2 Input",
+    Tooltip = "Textbox untuk Option 2",
+    Placeholder = "Isi untuk Option 2...",
     Callback = function(Value)
-        print("Isi TextBox 2:", Value)
+        print("Isi TextBox Option 2:", Value)
     end,
 })
 
