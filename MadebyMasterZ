@@ -1,91 +1,76 @@
--- Ganti dengan nama pemain asli (Client)
-local ClientName = "akunoctora"
+local repo = "https://raw.githubusercontent.com/deividcomsono/Obsidian/main/"
+local Library = loadstring(game:HttpGet(repo .. "Library.lua"))()
+local ThemeManager = loadstring(game:HttpGet(repo .. "addons/ThemeManager.lua"))()
+local SaveManager = loadstring(game:HttpGet(repo .. "addons/SaveManager.lua"))()
 
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local Options = Library.Options
+local Toggles = Library.Toggles
 
-local localPlayer = Players.LocalPlayer
-local client = nil
-local follow = false
+Library.ForceCheckbox = false
+Library.ShowToggleFrameInKeybinds = true
 
-local humanoid = nil
-local myRootPart = nil
+local Window = Library:CreateWindow({
+    Title = "Made by MasterZ",
+    Footer = "v1.0.0",
+    Icon = 0,
+    NotifySide = "Right",
+    ShowCustomCursor = true,
+})
 
--- Debug log
-local function debugPrint(msg)
-	print("[DEBUG] " .. msg)
-end
+local Tabs = {
+    Main = Window:AddTab("Main", "user"),
+}
 
--- Update referensi karakter bot
-local function updateBotRefs()
-	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-	humanoid = character:WaitForChild("Humanoid")
-	myRootPart = character:WaitForChild("HumanoidRootPart")
-end
+local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main Options")
 
--- Fungsi untuk jalan ke belakang client (jarak 5 studs)
-local function followClient()
-	if not client or not client.Character then return end
-	local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
-	if not targetHRP or not myRootPart then return end
+-- Toggle Contoh
+LeftGroupBox:AddToggle("ExampleToggle", {
+    Text = "Contoh Toggle",
+    Default = false,
+    Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
+    Callback = function(Value)
+        if Value then
+            print("Contoh Toggle aktif")
+        else
+            print("Contoh Toggle nonaktif")
+        end
+    end,
+})
 
-	local targetPos = targetHRP.Position - targetHRP.CFrame.LookVector * 5
+-- TextBox Pertama
+LeftGroupBox:AddInput("TextBox1", {
+    Default = "",
+    Numeric = false,
+    Finished = false,
+    Text = "Textbox 1",
+    Tooltip = "Masukkan teks untuk keperluan pertama",
+    Placeholder = "Ketik sesuatu...",
+    Callback = function(Value)
+        print("Isi TextBox 1:", Value)
+    end,
+})
 
-	-- Hanya bergerak kalau jaraknya lebih dari 2 studs
-	if (myRootPart.Position - targetPos).Magnitude > 2 then
-		humanoid:MoveTo(targetPos)
-		debugPrint("Berjalan ke: " .. tostring(targetPos))
-	end
-end
+-- TextBox Kedua
+LeftGroupBox:AddInput("TextBox2", {
+    Default = "",
+    Numeric = false,
+    Finished = false,
+    Text = "Textbox 2",
+    Tooltip = "Masukkan teks untuk keperluan kedua",
+    Placeholder = "Ketik sesuatu juga...",
+    Callback = function(Value)
+        print("Isi TextBox 2:", Value)
+    end,
+})
 
--- Fungsi berhenti
-local function stopFollowing()
-	follow = false
-	if humanoid and myRootPart then
-		humanoid:MoveTo(myRootPart.Position) -- berhenti di tempat
-	end
-	debugPrint("Berhenti mengikuti.")
-end
+-- Theme dan Save
+Library.ToggleKeybind = Options.MenuKeybind
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
 
--- Saat client ditemukan
-local function setupClient(player)
-	if player.Name ~= ClientName then return end
-	client = player
-	debugPrint("Client ditemukan: " .. player.Name)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes({ "MenuKeybind" })
 
-	-- Dengarkan perintah chat dari client
-	client.Chatted:Connect(function(msg)
-		if msg == "!ikuti" then
-			follow = true
-			debugPrint("Perintah !ikuti diterima")
-		elseif msg == "!stop" then
-			stopFollowing()
-			debugPrint("Perintah !stop diterima")
-		end
-	end)
-end
-
--- Pantau semua pemain
-for _, p in ipairs(Players:GetPlayers()) do
-	setupClient(p)
-end
-
--- Pantau pemain baru yang join
-Players.PlayerAdded:Connect(setupClient)
-
--- Update referensi saat karakter bot spawn
-localPlayer.CharacterAdded:Connect(function()
-	debugPrint("Karakter bot spawn ulang.")
-	updateBotRefs()
-end)
-
--- Inisialisasi awal
-updateBotRefs()
-
--- Loop jalan setiap 0.5 detik
-while true do
-	task.wait(0.5)
-	if follow then
-		followClient()
-	end
-end
+ThemeManager:SetFolder("MyScriptHub")
+SaveManager:SetFolder("MyScriptHub/specific-game")
+SaveManager:SetSubFolder("specific-place")
