@@ -120,7 +120,7 @@ local function rotateAwayFromClient(targetHRP)
     local posisi = myRootPart.Position
     local targetPos = targetHRP.Position
     local menghadapClient = CFrame.lookAt(posisi, targetPos)
-    local membelakangiClient = menghadapClient * CFrame.Angles(0, math.rad(180), 0)
+    local membelakangiClient = menghadapClient * CFrame.Angles(0, math.rad(-180), 0)
     myRootPart.CFrame = membelakangiClient
 end
 
