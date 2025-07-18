@@ -1,1 +1,85 @@
+-- Ganti dengan nama pemain asli (client)
+local ClientName = "akunoctora"
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local client = nil
+local follow = false
+
+local humanoid
+local myRootPart
+
+-- Fungsi debug
+local function debugPrint(msg)
+	print("[DEBUG] " .. msg)
+end
+
+-- Update referensi karakter bot
+local function updateCharacter()
+	local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	humanoid = character:WaitForChild("Humanoid")
+	myRootPart = character:WaitForChild("HumanoidRootPart")
+	debugPrint("Bot siap.")
+end
+
+-- Fungsi gerak ke targetPos secara normal
+local function moveTo(targetPos)
+	if humanoid and myRootPart then
+		humanoid:MoveTo(targetPos)
+	end
+end
+
+-- Fungsi follow client (jarak 5 studs dari belakang)
+local function followClient()
+	if not client or not client.Character then return end
+	local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+	if not targetHRP then return end
+
+	local targetPos = targetHRP.Position - targetHRP.CFrame.LookVector * 5
+	moveTo(targetPos)
+end
+
+-- Deteksi perintah chat dari client
+local function monitorClient(player)
+	if player.Name == ClientName then
+		client = player
+		debugPrint("Client ditemukan: " .. client.Name)
+
+		player.Chatted:Connect(function(message)
+			if message == "!ikuti" then
+				follow = true
+				debugPrint("Perintah !ikuti diterima.")
+			elseif message == "!stop" then
+				follow = false
+				humanoid:MoveTo(myRootPart.Position) -- berhenti di tempat
+				debugPrint("Perintah !stop diterima.")
+			end
+		end)
+	end
+end
+
+-- Cek semua pemain yang sudah ada
+for _, player in ipairs(Players:GetPlayers()) do
+	monitorClient(player)
+end
+
+-- Pantau pemain baru
+Players.PlayerAdded:Connect(monitorClient)
+
+-- Update saat karakter bot respawn
+localPlayer.CharacterAdded:Connect(function()
+	updateCharacter()
+end)
+
+-- Inisialisasi awal
+updateCharacter()
+
+-- Loop per 0.5 detik biar bot tidak spam MoveTo
+while true do
+	task.wait(0.5)
+	if follow then
+		followClient()
+	end
+end
