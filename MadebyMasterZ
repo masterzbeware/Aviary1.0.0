@@ -1,5 +1,5 @@
 -- Ganti nama Client di bawah ini dengan nama pemain yang ingin diikuti
-local ClientName = "akunoctora"
+local ClientName = "NamaPemainClient"
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -19,34 +19,36 @@ local function findClient()
 	end
 end
 
--- Fungsi untuk mengikuti client
+-- Fungsi untuk mengikuti client dari belakang dengan jarak 5 studs
 local function followClient()
 	if not client or not client.Character or not localPlayer.Character then return end
 	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
 	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and targetHrp then
-		hrp.CFrame = CFrame.new(targetHrp.Position + Vector3.new(2, 0, 2))
+		local followPos = targetHrp.Position - (targetHrp.CFrame.LookVector * 5)
+		hrp.CFrame = CFrame.new(followPos, targetHrp.Position) -- menghadap ke client
 	end
 end
 
--- Fungsi untuk baris (berdiri sejajar di belakang client)
+-- Fungsi untuk formasi baris
 local function barisFormasi()
 	if not client or not client.Character or not localPlayer.Character then return end
 	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
 	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and targetHrp then
-		hrp.CFrame = CFrame.new(targetHrp.Position - targetHrp.CFrame.LookVector * 3)
+		local formasiPos = targetHrp.Position - targetHrp.CFrame.LookVector * 3
+		hrp.CFrame = CFrame.new(formasiPos, targetHrp.Position)
 	end
 end
 
--- Dengarkan chat client
+-- Deteksi saat client join
 Players.PlayerAdded:Connect(function(player)
 	if player.Name == ClientName then
 		client = player
 	end
 end)
 
--- Dengarkan perintah di chat
+-- Deteksi perintah chat
 Players.PlayerChatted:Connect(function(player, message)
 	if player.Name == ClientName then
 		if message == "!ikuti" then
@@ -59,7 +61,7 @@ Players.PlayerChatted:Connect(function(player, message)
 	end
 end)
 
--- Jalankan per frame
+-- Jalankan loop setiap frame
 RunService.RenderStepped:Connect(function()
 	if follow then
 		followClient()
@@ -68,5 +70,5 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Awal: cari client
+-- Cari client saat script dijalankan
 findClient()
