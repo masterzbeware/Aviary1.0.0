@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v3.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -20,7 +20,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- ✅ Variabel & State
+-- ✅ Variabel Global
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
@@ -30,6 +30,7 @@ local jarakIkut = 5
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
+
 local followConnection = nil
 local loopTask = nil
 local humanoid = nil
@@ -49,16 +50,23 @@ GroupBox1:AddToggle("AktifkanFollow", {
         if Value then
             Library:Notify("Bot Follow Diaktifkan", 3)
 
-            -- Disconnect lama dulu
+            -- Bersihkan koneksi lama jika ada
             if followConnection then followConnection:Disconnect() end
             if loopTask then loopTask:Disconnect() end
 
+            -- Jalankan ulang sistem
             setupBotFollowSystem()
         else
             Library:Notify("Bot Follow Dimatikan", 3)
+
+            -- Matikan follow
             followAllowed = false
 
+            -- Disconnect semua koneksi
             if loopTask then loopTask:Disconnect() end
+            if followConnection then followConnection:Disconnect() end
+
+            -- Hentikan gerakan
             if humanoid and myRootPart then
                 humanoid:MoveTo(myRootPart.Position)
             end
@@ -112,15 +120,17 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem follow
+-- ✅ Sistem Follow
 function setupBotFollowSystem()
     updateBotRefs()
 
+    -- Temukan client dan hubungkan event
     local function setupClient(player)
         if player.Name ~= clientName then return end
         client = player
         print("[INFO] Client ditemukan:", player.Name)
 
+        -- Dengarkan perintah !ikuti dan !stop
         followConnection = player.Chatted:Connect(function(msg)
             if msg == "!ikuti" then
                 followAllowed = true
@@ -133,13 +143,18 @@ function setupBotFollowSystem()
         end)
     end
 
+    -- Cek semua player yang sudah ada
     for _, p in ipairs(Players:GetPlayers()) do
         setupClient(p)
     end
+
+    -- Dengarkan player baru
     Players.PlayerAdded:Connect(setupClient)
 
+    -- Jika karakter bot respawn
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
+    -- Loop follow saat heartbeat
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
