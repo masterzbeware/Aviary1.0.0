@@ -9,11 +9,17 @@ local client = nil
 local follow = false
 local baris = false
 
+-- Fungsi untuk mencetak debug info
+local function debugPrint(msg)
+	print("[DEBUG] " .. msg)
+end
+
 -- Fungsi untuk mencari client
 local function findClient()
 	for _, player in pairs(Players:GetPlayers()) do
 		if player.Name == ClientName then
 			client = player
+			debugPrint("Client ditemukan: " .. player.Name)
 			break
 		end
 	end
@@ -21,47 +27,60 @@ end
 
 -- Fungsi untuk mengikuti client dari belakang dengan jarak 5 studs
 local function followClient()
-	if not client or not client.Character or not localPlayer.Character then return end
+	if not client or not client.Character or not localPlayer.Character then 
+		debugPrint("Follow gagal: karakter client atau bot belum ready")
+		return 
+	end
 	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
 	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and targetHrp then
 		local followPos = targetHrp.Position - (targetHrp.CFrame.LookVector * 5)
-		hrp.CFrame = CFrame.new(followPos, targetHrp.Position) -- menghadap ke client
+		hrp.CFrame = CFrame.new(followPos, targetHrp.Position)
+		debugPrint("Mengikuti client ke posisi: " .. tostring(followPos))
 	end
 end
 
--- Fungsi untuk formasi baris
+-- Fungsi untuk baris sejajar
 local function barisFormasi()
-	if not client or not client.Character or not localPlayer.Character then return end
+	if not client or not client.Character or not localPlayer.Character then 
+		debugPrint("Baris gagal: karakter belum ready")
+		return 
+	end
 	local hrp = localPlayer.Character:FindFirstChild("HumanoidRootPart")
 	local targetHrp = client.Character:FindFirstChild("HumanoidRootPart")
 	if hrp and targetHrp then
 		local formasiPos = targetHrp.Position - targetHrp.CFrame.LookVector * 3
 		hrp.CFrame = CFrame.new(formasiPos, targetHrp.Position)
+		debugPrint("Formasi baris ke posisi: " .. tostring(formasiPos))
 	end
 end
 
--- Deteksi saat client join
+-- Saat client join
 Players.PlayerAdded:Connect(function(player)
 	if player.Name == ClientName then
 		client = player
+		debugPrint("Client join: " .. player.Name)
 	end
 end)
 
--- Deteksi perintah chat
+-- Deteksi chat perintah
 Players.PlayerChatted:Connect(function(player, message)
 	if player.Name == ClientName then
 		if message == "!ikuti" then
 			follow = true
 			baris = false
+			debugPrint("Perintah diterima: !ikuti")
 		elseif message == "!baris" then
 			baris = true
 			follow = false
+			debugPrint("Perintah diterima: !baris")
+		else
+			debugPrint("Perintah tidak dikenal: " .. message)
 		end
 	end
 end)
 
--- Jalankan loop setiap frame
+-- Loop utama
 RunService.RenderStepped:Connect(function()
 	if follow then
 		followClient()
@@ -70,5 +89,5 @@ RunService.RenderStepped:Connect(function()
 	end
 end)
 
--- Cari client saat script dijalankan
+-- Mulai dengan mencari client
 findClient()
