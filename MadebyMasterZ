@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v4.0.0",
+    Footer = "v7.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -162,8 +162,17 @@ function setupBotFollowSystem()
 
                         if not blocked then
                             humanoid:MoveTo(pos)
-                            Library:Notify("Bot menjaga posisi ke-" .. i, 2)
                             found = true
+                            Library:Notify("Bot menjaga posisi ke-" .. i, 2)
+
+                            -- Tunggu dan ubah arah agar bot membelakangi client
+                            task.delay(0.5, function()
+                                if myRootPart and targetHRP then
+                                    local lookDir = (myRootPart.Position - targetHRP.Position).Unit
+                                    myRootPart.CFrame = CFrame.new(myRootPart.Position, myRootPart.Position + lookDir)
+                                end
+                            end)
+
                             break
                         end
                     end
