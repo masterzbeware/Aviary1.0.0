@@ -50,6 +50,15 @@ GroupBox1:AddInput("TextBox1", {
 })
 
 -- ======= Main Options2 =======
+GroupBox2:AddToggle("ExtraToggle", {
+    Text = "Toggle Tambahan",
+    Default = false,
+    Tooltip = "Toggle di groupbox kedua.",
+    Callback = function(Value)
+        print(Value and "Toggle Tambahan aktif" or "Toggle Tambahan nonaktif")
+    end,
+})
+
 GroupBox2:AddInput("TextBox2", {
     Default = "",
     Numeric = false,
