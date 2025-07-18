@@ -23,9 +23,9 @@ local Tabs = {
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
 
 GroupBox1:AddToggle("ExampleToggle1", {
-    Text = "Contoh Toggle",
+    Text = "Aktifkan",
     Default = false,
-    Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
+    Tooltip = "Ini toggle untuk mengaktifkan Nama Client.",
     Callback = function(Value)
         print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
     end,
@@ -47,9 +47,9 @@ GroupBox1:AddInput("Textbox1", {
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Main Options2")
 
 GroupBox2:AddToggle("ExampleToggle2", {
-    Text = "Contoh Toggle",
+    Text = "Aktifkan",
     Default = false,
-    Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
+    Tooltip = "Ini toggle untuk mengaktifkan Nama Bot dan Jarak.",
     Callback = function(Value)
         print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
     end,
