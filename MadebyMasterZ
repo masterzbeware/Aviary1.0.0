@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v3.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -138,6 +138,11 @@ function setupBotFollowSystem()
 
             elseif msg == "!jaga1" then
                 if tostring(localPlayer.UserId) == "8802945328" and client and client.Character then
+                    -- ⛔ Matikan follow
+                    followAllowed = false
+                    humanoid:MoveTo(myRootPart.Position)
+                    Library:Notify("Follow dimatikan karena menjalankan !jaga1", 3)
+
                     local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                     if targetHRP and humanoid and myRootPart then
                         local depanPos = targetHRP.Position + targetHRP.CFrame.LookVector * jarakIkut
