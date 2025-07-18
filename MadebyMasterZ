@@ -19,7 +19,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- GroupBox1: Main Options1
+-- GroupBox1
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
 
 GroupBox1:AddToggle("ExampleToggle1", {
@@ -43,7 +43,7 @@ GroupBox1:AddInput("Textbox1", {
     end,
 })
 
--- GroupBox2: Main Options2
+-- GroupBox2
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Main Options2")
 
 GroupBox2:AddToggle("ExampleToggle2", {
@@ -52,18 +52,6 @@ GroupBox2:AddToggle("ExampleToggle2", {
     Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
     Callback = function(Value)
         print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
-    end,
-})
-
-GroupBox2:AddInput("DistanceTextbox", {
-    Default = "",
-    Numeric = true,
-    Finished = false,
-    Text = "Jarak Bot",
-    Tooltip = "Masukkan jarak antara bot dan player",
-    Placeholder = "Contoh: 10",
-    Callback = function(Value)
-        print("Jarak Bot:", Value)
     end,
 })
 
@@ -79,5 +67,17 @@ GroupBox2:AddInput("Textbox2", {
     end,
 })
 
--- Keybind toggle menu (opsional)
+GroupBox2:AddInput("Textbox3", {
+    Default = "",
+    Numeric = false,
+    Finished = false,
+    Text = "Jarak Bot",
+    Tooltip = "Masukan jumlah jarak Bot ",
+    Placeholder = "Ketik sesuatu juga...",
+    Callback = function(Value)
+        print("Nama Bot:", Value)
+    end,
+})
+
+-- Keybind Toggle Menu
 Library.ToggleKeybind = Options.MenuKeybind
