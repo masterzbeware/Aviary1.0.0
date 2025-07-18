@@ -21,28 +21,23 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
--- Groupbox kiri: Main Options1
-local LeftGroupBox = Tabs.Main:AddLeftGroupbox("Main Options1")
+-- GroupBox 1: kiri
+local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options1")
 
--- Groupbox kanan: Main Options2
-local RightGroupBox = Tabs.Main:AddRightGroupbox("Main Options2")
+-- GroupBox 2: kanan
+local GroupBox2 = Tabs.Main:AddRightGroupbox("Main Options2")
 
--- Toggle di Main Options1
-LeftGroupBox:AddToggle("ExampleToggle", {
+-- ======= Main Options1 =======
+GroupBox1:AddToggle("ExampleToggle", {
     Text = "Contoh Toggle",
     Default = false,
     Tooltip = "Ini toggle kosong yang bisa kamu isi nanti.",
     Callback = function(Value)
-        if Value then
-            print("Contoh Toggle aktif")
-        else
-            print("Contoh Toggle nonaktif")
-        end
+        print(Value and "Contoh Toggle aktif" or "Contoh Toggle nonaktif")
     end,
 })
 
--- TextBox1 di Main Options1
-LeftGroupBox:AddInput("TextBox1", {
+GroupBox1:AddInput("TextBox1", {
     Default = "",
     Numeric = false,
     Finished = false,
@@ -54,8 +49,8 @@ LeftGroupBox:AddInput("TextBox1", {
     end,
 })
 
--- TextBox2 di Main Options2
-RightGroupBox:AddInput("TextBox2", {
+-- ======= Main Options2 =======
+GroupBox2:AddInput("TextBox2", {
     Default = "",
     Numeric = false,
     Finished = false,
@@ -67,7 +62,7 @@ RightGroupBox:AddInput("TextBox2", {
     end,
 })
 
--- Theme dan Save
+-- Theme & Save
 Library.ToggleKeybind = Options.MenuKeybind
 ThemeManager:SetLibrary(Library)
 SaveManager:SetLibrary(Library)
