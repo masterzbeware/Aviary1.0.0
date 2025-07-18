@@ -35,11 +35,11 @@ GroupBox1:AddInput("Textbox1", {
     Default = "",
     Numeric = false,
     Finished = false,
-    Text = "Textbox 1",
-    Tooltip = "Masukkan sesuatu di sini",
+    Text = "Nama Client",
+    Tooltip = "Masukkan nama client",
     Placeholder = "Ketik sesuatu...",
     Callback = function(Value)
-        print("Textbox1 diisi:", Value)
+        print("Nama Client:", Value)
     end,
 })
 
@@ -59,11 +59,11 @@ GroupBox2:AddInput("Textbox2", {
     Default = "",
     Numeric = false,
     Finished = false,
-    Text = "Textbox 2",
-    Tooltip = "Masukkan sesuatu juga di sini",
+    Text = "Nama Bot",
+    Tooltip = "Masukkan nama bot",
     Placeholder = "Ketik sesuatu juga...",
     Callback = function(Value)
-        print("Textbox2 diisi:", Value)
+        print("Nama Bot:", Value)
     end,
 })
 
