@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -147,7 +147,7 @@ function setupBotFollowSystem()
                     if targetHRP and humanoid and myRootPart then
                         local depanPos = targetHRP.Position + targetHRP.CFrame.LookVector * jarakIkut
                         humanoid:MoveTo(depanPos)
-                        Library:Notify("Bot (8802945328) bergerak ke depan client", 3)
+                        Library:Notify("Bot (8802945328) bergerak ke depan client sejauh " .. tostring(jarakIkut), 3)
                     end
                 end
 
@@ -161,7 +161,7 @@ function setupBotFollowSystem()
                     if targetHRP and humanoid and myRootPart then
                         local belakangPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                         humanoid:MoveTo(belakangPos)
-                        Library:Notify("Bot (8802949363) bergerak ke belakang client", 3)
+                        Library:Notify("Bot (8802949363) bergerak ke belakang client sejauh " .. tostring(jarakIkut), 3)
                     end
                 end
             end
