@@ -1,1 +1,142 @@
+-- Ganti dengan nama pemain yang jadi client
+local ClientName = "akunoctora"
 
+local Players = game:GetService("Players")
+local PathfindingService = game:GetService("PathfindingService")
+local RunService = game:GetService("RunService")
+
+local localPlayer = Players.LocalPlayer
+local client = nil
+local follow = false
+local baris = false
+local walking = false
+
+local humanoid
+local myRoot
+
+-- Update referensi karakter bot
+local function updateBotRefs()
+	local char = localPlayer.Character or localPlayer.CharacterAdded:Wait()
+	humanoid = char:WaitForChild("Humanoid")
+	myRoot = char:WaitForChild("HumanoidRootPart")
+end
+
+-- Debug
+local function debugPrint(msg)
+	print("[DEBUG] " .. msg)
+end
+
+-- Jalan ke posisi (dengan event, bukan teleport)
+local function moveTo(targetPos)
+	if not humanoid or not myRoot or walking then return end
+	walking = true
+
+	local path = PathfindingService:CreatePath({
+		AgentRadius = 2,
+		AgentHeight = 5,
+		AgentCanJump = true,
+		AgentCanClimb = true,
+	})
+	path:ComputeAsync(myRoot.Position, targetPos)
+
+	if path.Status == Enum.PathStatus.Complete then
+		local waypoints = path:GetWaypoints()
+		local index = 1
+
+		local function moveNext()
+			if index > #waypoints then
+				walking = false
+				return
+			end
+
+			local nextPoint = waypoints[index]
+			index += 1
+
+			humanoid:MoveTo(nextPoint.Position)
+
+			humanoid.MoveToFinished:Once(function(reached)
+				if reached then
+					moveNext()
+				else
+					walking = false
+					debugPrint("Gagal mencapai waypoint.")
+				end
+			end)
+		end
+
+		moveNext()
+	else
+		debugPrint("Path gagal dihitung.")
+		walking = false
+	end
+end
+
+-- Follow client dari belakang (5 studs)
+local function followClient()
+	if not client or not client.Character then return end
+	local targetRoot = client.Character:FindFirstChild("HumanoidRootPart")
+	if not targetRoot then return end
+	local followPos = targetRoot.Position - targetRoot.CFrame.LookVector * 5
+	moveTo(followPos)
+end
+
+-- Formasi baris
+local function barisFormasi()
+	if not client or not client.Character then return end
+	local targetRoot = client.Character:FindFirstChild("HumanoidRootPart")
+	if not targetRoot then return end
+	local barisPos = targetRoot.Position - targetRoot.CFrame.LookVector * 3
+	moveTo(barisPos)
+end
+
+-- Saat client ditemukan
+local function handleClient(player)
+	if player.Name ~= ClientName then return end
+	client = player
+	debugPrint("Client ditemukan: " .. player.Name)
+
+	player.Chatted:Connect(function(msg)
+		if msg == "!ikuti" then
+			follow = true
+			baris = false
+			debugPrint("Perintah !ikuti diterima")
+		elseif msg == "!baris" then
+			baris = true
+			follow = false
+			debugPrint("Perintah !baris diterima")
+		elseif msg == "!stop" then
+			follow = false
+			baris = false
+			humanoid:MoveTo(myRoot.Position) -- berhenti
+			debugPrint("Perintah !stop diterima")
+		end
+	end)
+end
+
+-- Pantau semua pemain
+for _, p in pairs(Players:GetPlayers()) do
+	handleClient(p)
+end
+
+Players.PlayerAdded:Connect(handleClient)
+
+-- Respawn
+localPlayer.CharacterAdded:Connect(function()
+	debugPrint("Karakter bot respawn")
+	updateBotRefs()
+end)
+
+-- Inisialisasi awal
+updateBotRefs()
+
+-- Loop ringan
+while true do
+	task.wait(1)
+	if not walking then
+		if follow then
+			followClient()
+		elseif baris then
+			barisFormasi()
+		end
+	end
+end
