@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v11.02.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -115,7 +115,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow dan Jaga
+-- ✅ Sistem Follow
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -142,10 +142,10 @@ function setupBotFollowSystem()
                     if client and client.Character then
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
-                            local targetPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
-                            local lookAt = targetHRP.Position + targetHRP.CFrame.LookVector * 10
-                            humanoid:MoveTo(targetPos)
-                            myRootPart.CFrame = CFrame.new(targetPos, lookAt)
+                            local jagaPos = targetHRP.Position + targetHRP.CFrame.LookVector * 5
+                            local lookDirection = targetHRP.CFrame.LookVector
+                            local newCFrame = CFrame.new(jagaPos, jagaPos + lookDirection)
+                            myRootPart.CFrame = newCFrame
                         end
                     end
                 end
@@ -158,10 +158,10 @@ function setupBotFollowSystem()
                     if client and client.Character then
                         local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
                         if targetHRP then
-                            local targetPos = targetHRP.Position + targetHRP.CFrame.RightVector * 5
-                            local lookAt = targetHRP.Position + targetHRP.CFrame.LookVector * 10
-                            humanoid:MoveTo(targetPos)
-                            myRootPart.CFrame = CFrame.new(targetPos, lookAt)
+                            local jagaPos = targetHRP.Position + targetHRP.CFrame.RightVector * 5
+                            local lookDirection = targetHRP.CFrame.RightVector
+                            local newCFrame = CFrame.new(jagaPos, jagaPos + lookDirection)
+                            myRootPart.CFrame = newCFrame
                         end
                     end
                 end
