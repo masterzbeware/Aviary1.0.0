@@ -160,23 +160,43 @@ function setupBotFollowSystem()
                 local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5) end
 
-            elseif msg == "!formasi" then
+            elseif msg == "!formasi1" then
                 followAllowed = false
                 local uid = tostring(localPlayer.UserId)
                 local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     if uid == "8802945328" then
-                        Library:Notify("Formasi: Bot depan aktif", 3)
+                        Library:Notify("Formasi1: Bot depan aktif", 3)
                         humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 5)
                     elseif uid == "8802949363" then
-                        Library:Notify("Formasi: Bot kanan aktif", 3)
+                        Library:Notify("Formasi1: Bot kanan aktif", 3)
                         humanoid:MoveTo(hrp.Position + hrp.CFrame.RightVector * 5)
                     elseif uid == "8802939883" then
-                        Library:Notify("Formasi: Bot kiri aktif", 3)
+                        Library:Notify("Formasi1: Bot kiri aktif", 3)
                         humanoid:MoveTo(hrp.Position - hrp.CFrame.RightVector * 5)
                     elseif uid == "8802998147" then
-                        Library:Notify("Formasi: Bot belakang aktif", 3)
+                        Library:Notify("Formasi1: Bot belakang aktif", 3)
                         humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5)
+                    end
+                end
+
+            elseif msg == "!formasi2" then
+                followAllowed = false
+                local uid = tostring(localPlayer.UserId)
+                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    if uid == "8802945328" then
+                        Library:Notify("Formasi2: Bot depan-kiri aktif", 3)
+                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4)
+                    elseif uid == "8802949363" then
+                        Library:Notify("Formasi2: Bot depan-kanan aktif", 3)
+                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4)
+                    elseif uid == "8802939883" then
+                        Library:Notify("Formasi2: Bot belakang-kiri aktif", 3)
+                        humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4)
+                    elseif uid == "8802998147" then
+                        Library:Notify("Formasi2: Bot belakang-kanan aktif", 3)
+                        humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4)
                     end
                 end
 
@@ -199,29 +219,22 @@ function setupBotFollowSystem()
                 if not hrpClient then return end
 
                 task.spawn(function()
-                    -- Tunggu giliran masing-masing bot
                     task.wait((giliran - 1) * 2.5)
 
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrpClient.Position + hrpClient.CFrame.LookVector * 3
 
-                    -- Maju ke depan client
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrpClient.Position)
                     humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
 
-                    -- Berputar balik menghadap client
                     task.wait(0.5)
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, hrpClient.Position)
 
-                    -- Diam sebentar
                     task.wait(1.5)
-
-                    -- Kembali ke posisi awal
                     humanoid:MoveTo(posisiAwal)
                     humanoid.MoveToFinished:Wait()
 
-                    -- Hadapkan ke client (opsional)
                     task.wait(0.3)
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrpClient.Position)
                 end)
