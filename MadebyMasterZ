@@ -183,39 +183,43 @@ function setupBotFollowSystem()
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                 humanoid:MoveTo(target)
 
-            elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
-                followAllowed = false
-                local uid = tostring(localPlayer.UserId)
-                local formasi = {}
+elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
+    followAllowed = false
+    local uid = tostring(localPlayer.UserId)
+    local formasi = {}
 
-                if msg == "!formasi1" then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                    }
-                elseif msg == "!formasi2" then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                    }
-                elseif msg == "!formasi3" then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
-                        ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
-                        ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-                    }
-                end
+    if msg == "!formasi1" then
+        formasi = {
+            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
+            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
+            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
+            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
+            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 8,
+        }
+    elseif msg == "!formasi2" then
+        formasi = {
+            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 6,
+        }
+    elseif msg == "!formasi3" then
+        formasi = {
+            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 8,
+            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4,
+            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 8,
+        }
+    end
 
-                local target = formasi[uid]
-                if target then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    humanoid:MoveTo(target)
-                end
+    local target = formasi[uid]
+    if target then
+        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+        humanoid:MoveTo(target)
+    end
+
 
             elseif msg == "!absen" then
                 followAllowed = false
