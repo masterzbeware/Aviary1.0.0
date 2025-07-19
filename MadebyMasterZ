@@ -20,7 +20,9 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
+----------------------------------------------------------------
 -- ✅ Variabel Global
+----------------------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -38,7 +40,9 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
--- ✅ UI LEFT
+----------------------------------------------------------------
+-- ✅ UI LEFT (Main Options)
+----------------------------------------------------------------
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
@@ -75,7 +79,9 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
--- ✅ UI RIGHT
+----------------------------------------------------------------
+-- ✅ UI RIGHT (Pengaturan Jarak)
+----------------------------------------------------------------
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
@@ -84,9 +90,7 @@ GroupBox2:AddInput("JarakIkutInput", {
     Placeholder = "Contoh: 5",
     Callback = function(Value)
         local number = tonumber(Value)
-        if number then
-            jarakIkut = number
-        end
+        if number then jarakIkut = number end
     end,
 })
 
@@ -96,20 +100,22 @@ GroupBox2:AddInput("JarakMinimumInput", {
     Placeholder = "Contoh: 2",
     Callback = function(Value)
         local number = tonumber(Value)
-        if number then
-            jarakMinimum = number
-        end
+        if number then jarakMinimum = number end
     end,
 })
 
+----------------------------------------------------------------
 -- ✅ Fungsi bantu
+----------------------------------------------------------------
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
+----------------------------------------------------------------
 -- ✅ Sistem Follow & Perintah
+----------------------------------------------------------------
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -119,35 +125,36 @@ function setupBotFollowSystem()
 
         followConnection = player.Chatted:Connect(function(msg)
             msg = msg:lower()
-
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
+            -- 💂 Perintah !stop
             if msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Bot berhenti & keluar dari sync", 3)
 
-                -- Stop gabung (leaveSync)
                 local args = { "leaveSync" }
-                local success, err = pcall(function()
+                pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
                         :WaitForChild("animationHandler")
                         :InvokeServer(unpack(args))
                 end)
-                if not success then
-                    warn("Gagal leaveSync:", err)
-                end
 
+            -- 💂 Perintah !gabung
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
+
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
-                    ReplicatedStorage:WaitForChild("Connections"):WaitForChild("dataProviders")
-                        :WaitForChild("commandHandler"):InvokeServer(unpack(args))
+                    ReplicatedStorage:WaitForChild("Connections")
+                        :WaitForChild("dataProviders")
+                        :WaitForChild("commandHandler")
+                        :InvokeServer(unpack(args))
                 end)
+
                 if success then
                     Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
                 else
@@ -155,10 +162,12 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal melakukan sync", 3)
                 end
 
+            -- 💂 Perintah !ikuti
             elseif msg == "!ikuti" then
                 followAllowed = true
                 Library:Notify("Bot mengikuti", 3)
 
+            -- 💂 Posisi Penjagaan
             elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
                 followAllowed = false
                 local target = hrp.Position + hrp.CFrame.LookVector * 5
@@ -183,44 +192,42 @@ function setupBotFollowSystem()
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                 humanoid:MoveTo(target)
 
-elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
-    followAllowed = false
-    local uid = tostring(localPlayer.UserId)
-    local formasi = {}
+            -- 💂 Formasi
+            elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
+                followAllowed = false
+                local uid = tostring(localPlayer.UserId)
+                local formasi = {}
 
-    if msg == "!formasi1" then
-        formasi = {
-            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 8,
-        }
-    elseif msg == "!formasi2" then
-        formasi = {
-            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 6,
-        }
-    elseif msg == "!formasi3" then
-        formasi = {
-            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 8,
-            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4,
-            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 8,
-        }
-    end
+                if msg == "!formasi1" then
+                    formasi = {
+                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
+                        ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
+                        ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
+                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
+                    }
+                elseif msg == "!formasi2" then
+                    formasi = {
+                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                        ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                    }
+                elseif msg == "!formasi3" then
+                    formasi = {
+                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
+                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
+                        ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
+                        ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
+                    }
+                end
 
-    local target = formasi[uid]
-    if target then
-        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-        humanoid:MoveTo(target)
-    end
+                local target = formasi[uid]
+                if target then
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                    humanoid:MoveTo(target)
+                end
 
-
+            -- 💂 Absen
             elseif msg == "!absen" then
                 followAllowed = false
                 Library:Notify("Bot absen satu per satu", 5)
@@ -232,6 +239,7 @@ elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                     ["8802939883"] = 3,
                     ["8802998147"] = 4,
                 }
+
                 local giliran = urutanBot[uid]
                 if not giliran then return end
 
@@ -239,10 +247,12 @@ elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                     task.wait((giliran - 1) * 2.5)
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
+
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                     humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
+
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
                     humanoid:MoveTo(posisiAwal)
                 end)
@@ -263,6 +273,7 @@ elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
+
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                     humanoid:MoveTo(followPos)
