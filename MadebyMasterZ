@@ -136,88 +136,46 @@ function setupBotFollowSystem()
                 followAllowed = true
                 Library:Notify("Perintah !ikuti diterima, bot mengikuti!", 3)
 
-            elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
-                followAllowed = false
-                Library:Notify("Bot menjaga depan", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 5) end
-
-            elseif msg == "!jaga2" and tostring(localPlayer.UserId) == "8802949363" then
-                followAllowed = false
-                Library:Notify("Bot menjaga kanan", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then humanoid:MoveTo(hrp.Position + hrp.CFrame.RightVector * 5) end
-
-            elseif msg == "!jaga3" and tostring(localPlayer.UserId) == "8802939883" then
-                followAllowed = false
-                Library:Notify("Bot menjaga kiri", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then humanoid:MoveTo(hrp.Position - hrp.CFrame.RightVector * 5) end
-
-            elseif msg == "!jaga4" and tostring(localPlayer.UserId) == "8802998147" then
-                followAllowed = false
-                Library:Notify("Bot menjaga belakang", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5) end
-
-            elseif msg == "!formasi1" then
-                followAllowed = false
-                local uid = tostring(localPlayer.UserId)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if uid == "8802945328" then
-                        Library:Notify("Formasi1: Bot depan aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 5)
-                    elseif uid == "8802949363" then
-                        Library:Notify("Formasi1: Bot kanan aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.RightVector * 5)
-                    elseif uid == "8802939883" then
-                        Library:Notify("Formasi1: Bot kiri aktif", 3)
-                        humanoid:MoveTo(hrp.Position - hrp.CFrame.RightVector * 5)
-                    elseif uid == "8802998147" then
-                        Library:Notify("Formasi1: Bot belakang aktif", 3)
-                        humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5)
+                -- ✅ Tambahkan: Bot menghadap client saat mulai mengikuti
+                if client and client.Character then
+                    local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+                    if targetHRP then
+                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                     end
                 end
 
-            elseif msg == "!formasi2" then
+            elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                 followAllowed = false
                 local uid = tostring(localPlayer.UserId)
                 local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if uid == "8802945328" then
-                        Library:Notify("Formasi2: Bot depan-kiri aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4)
-                    elseif uid == "8802949363" then
-                        Library:Notify("Formasi2: Bot depan-kanan aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4)
-                    elseif uid == "8802939883" then
-                        Library:Notify("Formasi2: Bot belakang-kiri aktif", 3)
-                        humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4)
-                    elseif uid == "8802998147" then
-                        Library:Notify("Formasi2: Bot belakang-kanan aktif", 3)
-                        humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4)
-                    end
-                end
+                if not hrp then return end
 
-            elseif msg == "!formasi3" then
-                followAllowed = false
-                local uid = tostring(localPlayer.UserId)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    if uid == "8802945328" then
-                        Library:Notify("Formasi3: Bot kiri banget aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6)
-                    elseif uid == "8802949363" then
-                        Library:Notify("Formasi3: Bot kiri aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2)
-                    elseif uid == "8802939883" then
-                        Library:Notify("Formasi3: Bot kanan aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2)
-                    elseif uid == "8802998147" then
-                        Library:Notify("Formasi3: Bot kanan banget aktif", 3)
-                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6)
-                    end
+                local posisiFormasi = {
+                    ["!formasi1"] = {
+                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
+                        ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
+                        ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
+                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
+                    },
+                    ["!formasi2"] = {
+                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                        ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                    },
+                    ["!formasi3"] = {
+                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
+                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
+                        ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
+                        ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
+                    }
+                }
+
+                local dest = posisiFormasi[msg] and posisiFormasi[msg][uid]
+                if dest then
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                    humanoid:MoveTo(dest)
+                    Library:Notify("Formasi dijalankan: " .. msg, 3)
                 end
 
             elseif msg == "!absen" then
@@ -272,6 +230,7 @@ function setupBotFollowSystem()
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                     humanoid:MoveTo(followPos)
                 end
             end
