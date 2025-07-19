@@ -128,24 +128,22 @@ function setupBotFollowSystem()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            -- Perintah dasar
+            -- 💂 !stop
             if msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Bot berhenti & keluar dari sync", 3)
-
-                local args = { "leaveSync" }
                 pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
                         :WaitForChild("animationHandler")
-                        :InvokeServer(unpack(args))
+                        :InvokeServer("leaveSync")
                 end)
 
+            -- 💂 !gabung
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
-
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
@@ -153,7 +151,6 @@ function setupBotFollowSystem()
                         :WaitForChild("commandHandler")
                         :InvokeServer(unpack(args))
                 end)
-
                 if success then
                     Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
                 else
@@ -161,10 +158,12 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal melakukan sync", 3)
                 end
 
+            -- 💂 !ikuti
             elseif msg == "!ikuti" then
                 followAllowed = true
-                Library:Notify("Bot mengikuti", 3)
+                Library:Notify("Bot mengikuti dari belakang client", 3)
 
+            -- 💂 !jaga1–4 (sesuai BotID)
             elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
                 followAllowed = false
                 local target = hrp.Position + hrp.CFrame.LookVector * 5
@@ -189,6 +188,7 @@ function setupBotFollowSystem()
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                 humanoid:MoveTo(target)
 
+            -- 💂 Formasi 1–3
             elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                 followAllowed = false
                 local uid = tostring(localPlayer.UserId)
@@ -223,6 +223,7 @@ function setupBotFollowSystem()
                     humanoid:MoveTo(target)
                 end
 
+            -- 💂 !absen
             elseif msg == "!absen" then
                 followAllowed = false
                 Library:Notify("Bot absen satu per satu", 5)
@@ -242,12 +243,10 @@ function setupBotFollowSystem()
                     task.wait((giliran - 1) * 2.5)
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
-
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                     humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
-
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
                     humanoid:MoveTo(posisiAwal)
                 end)
@@ -262,7 +261,9 @@ function setupBotFollowSystem()
     Players.PlayerAdded:Connect(setupClient)
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    -- ✅ Bagian Follow yang Mengikuti Arah Kepala Client
+    ----------------------------------------------------------------
+    -- ✅ LOOP FOLLOW: Mengikuti dari belakang, sejajar arah client
+    ----------------------------------------------------------------
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
@@ -271,7 +272,9 @@ function setupBotFollowSystem()
                 local dist = (myRootPart.Position - followPos).Magnitude
 
                 if dist > jarakMinimum then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+                    -- Menghadap arah yang sama dengan client
+                    local lookVector = targetHRP.CFrame.LookVector
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, myRootPart.Position + lookVector)
                     humanoid:MoveTo(followPos)
                 end
             end
