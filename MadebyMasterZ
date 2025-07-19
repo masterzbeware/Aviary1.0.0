@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -128,11 +128,17 @@ function setupBotFollowSystem()
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Bot berhenti & keluar dari sync", 3)
 
+                -- Stop gabung (leaveSync)
                 local args = { "leaveSync" }
-                pcall(function()
-                    ReplicatedStorage:WaitForChild("Connections"):WaitForChild("dataProviders")
-                        :WaitForChild("animationHandler"):InvokeServer(unpack(args))
+                local success, err = pcall(function()
+                    ReplicatedStorage:WaitForChild("Connections")
+                        :WaitForChild("dataProviders")
+                        :WaitForChild("animationHandler")
+                        :InvokeServer(unpack(args))
                 end)
+                if not success then
+                    warn("Gagal leaveSync:", err)
+                end
 
             elseif msg == "!gabung" then
                 followAllowed = false
@@ -155,23 +161,27 @@ function setupBotFollowSystem()
 
             elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
                 followAllowed = false
-                humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 5)
+                local target = hrp.Position + hrp.CFrame.LookVector * 5
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
 
             elseif msg == "!jaga2" and tostring(localPlayer.UserId) == "8802949363" then
                 followAllowed = false
-                humanoid:MoveTo(hrp.Position + hrp.CFrame.RightVector * 5)
+                local target = hrp.Position + hrp.CFrame.RightVector * 5
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
 
             elseif msg == "!jaga3" and tostring(localPlayer.UserId) == "8802939883" then
                 followAllowed = false
-                humanoid:MoveTo(hrp.Position - hrp.CFrame.RightVector * 5)
+                local target = hrp.Position - hrp.CFrame.RightVector * 5
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
 
             elseif msg == "!jaga4" and tostring(localPlayer.UserId) == "8802998147" then
                 followAllowed = false
-                humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5)
+                local target = hrp.Position - hrp.CFrame.LookVector * 5
                 myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
 
             elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                 followAllowed = false
@@ -184,7 +194,6 @@ function setupBotFollowSystem()
                         ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
                         ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                        ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 5 + hrp.CFrame.RightVector * 3,
                     }
                 elseif msg == "!formasi2" then
                     formasi = {
@@ -192,7 +201,6 @@ function setupBotFollowSystem()
                         ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
                         ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802991722"] = hrp.Position,
                     }
                 elseif msg == "!formasi3" then
                     formasi = {
@@ -200,7 +208,6 @@ function setupBotFollowSystem()
                         ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
                         ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
                         ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-                        ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
                     }
                 end
 
@@ -220,7 +227,6 @@ function setupBotFollowSystem()
                     ["8802949363"] = 2,
                     ["8802939883"] = 3,
                     ["8802998147"] = 4,
-                    ["8802991722"] = 5,
                 }
                 local giliran = urutanBot[uid]
                 if not giliran then return end
