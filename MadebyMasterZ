@@ -23,7 +23,7 @@ local Tabs = {
 -- ✅ Variabel Global
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local PathfindingService = game:GetService("PathfindingService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 
 local clientName = ""
@@ -37,31 +37,6 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
-
--- ✅ Fungsi Pathfinding
-local function moveToWithPath(targetPos)
-    if not humanoid or not myRootPart then return end
-
-    local path = PathfindingService:CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true,
-        AgentCanClimb = true,
-    })
-
-    path:ComputeAsync(myRootPart.Position, targetPos)
-
-    if path.Status == Enum.PathStatus.Complete then
-        local waypoints = path:GetWaypoints()
-        for _, waypoint in ipairs(waypoints) do
-            myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, waypoint.Position)
-            humanoid:MoveTo(waypoint.Position)
-            humanoid.MoveToFinished:Wait()
-        end
-    else
-        warn("Pathfinding gagal ke:", targetPos)
-    end
-end
 
 -- ✅ UI LEFT
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
@@ -96,6 +71,7 @@ GroupBox1:AddInput("NamaClientInput", {
     Placeholder = "Contoh: MasterZ_YT",
     Callback = function(Value)
         clientName = Value
+        print("Client diatur ke:", clientName)
     end,
 })
 
@@ -156,42 +132,70 @@ function setupBotFollowSystem()
                 followAllowed = true
                 Library:Notify("Bot mengikuti", 3)
 
-            elseif msg:match("^!jaga%d") then
+            elseif msg == "!gabung" then
                 followAllowed = false
-                local uid = tostring(localPlayer.UserId)
-                local posisi = {
-                    ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                    ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-                    ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-                    ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                }
-                local target = posisi[uid]
-                if target then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    moveToWithPath(target)
+                Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
+                local args = { "sync", client.UserId }
+                local success, err = pcall(function()
+                    ReplicatedStorage:WaitForChild("Connections"):WaitForChild("dataProviders")
+                        :WaitForChild("commandHandler"):InvokeServer(unpack(args))
+                end)
+                if success then
+                    Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
+                else
+                    warn("Gagal sync:", err)
+                    Library:Notify("❌ Gagal melakukan sync", 3)
                 end
+
+            elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
+                followAllowed = false
+                Library:Notify("Bot menjaga depan", 3)
+                local target = hrp.Position + hrp.CFrame.LookVector * 5
+                myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
+
+            elseif msg == "!jaga2" and tostring(localPlayer.UserId) == "8802949363" then
+                followAllowed = false
+                Library:Notify("Bot menjaga kanan", 3)
+                local target = hrp.Position + hrp.CFrame.RightVector * 5
+                myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
+
+            elseif msg == "!jaga3" and tostring(localPlayer.UserId) == "8802939883" then
+                followAllowed = false
+                Library:Notify("Bot menjaga kiri", 3)
+                local target = hrp.Position - hrp.CFrame.RightVector * 5
+                myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
+
+            elseif msg == "!jaga4" and tostring(localPlayer.UserId) == "8802998147" then
+                followAllowed = false
+                Library:Notify("Bot menjaga belakang", 3)
+                local target = hrp.Position - hrp.CFrame.LookVector * 5
+                myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                humanoid:MoveTo(target)
 
             elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                 followAllowed = false
                 local uid = tostring(localPlayer.UserId)
-                local posisiFormasi = {}
+                local formasi = {}
 
                 if msg == "!formasi1" then
-                    posisiFormasi = {
+                    formasi = {
                         ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
                         ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
                         ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
                     }
                 elseif msg == "!formasi2" then
-                    posisiFormasi = {
+                    formasi = {
                         ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
                         ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
                         ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
                     }
                 elseif msg == "!formasi3" then
-                    posisiFormasi = {
+                    formasi = {
                         ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
                         ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
                         ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
@@ -199,10 +203,10 @@ function setupBotFollowSystem()
                     }
                 end
 
-                local target = posisiFormasi[uid]
+                local target = formasi[uid]
                 if target then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    moveToWithPath(target)
+                    humanoid:MoveTo(target)
                 end
 
             elseif msg == "!absen" then
@@ -221,17 +225,14 @@ function setupBotFollowSystem()
 
                 task.spawn(function()
                     task.wait((giliran - 1) * 2.5)
-
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
-
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    moveToWithPath(posisiAbsen)
-
+                    humanoid:MoveTo(posisiAbsen)
+                    humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
-
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    moveToWithPath(posisiAwal)
+                    humanoid:MoveTo(posisiAwal)
                 end)
             end
         end)
@@ -252,7 +253,7 @@ function setupBotFollowSystem()
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                    moveToWithPath(followPos)
+                    humanoid:MoveTo(followPos)
                 end
             end
         end
