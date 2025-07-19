@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v11.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -23,6 +23,7 @@ local Tabs = {
 -- ✅ Variabel Global
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 
 local clientName = ""
@@ -49,19 +50,14 @@ GroupBox1:AddToggle("AktifkanFollow", {
 
         if Value then
             Library:Notify("Bot Follow Diaktifkan", 3)
-
             if followConnection then followConnection:Disconnect() end
             if loopTask then loopTask:Disconnect() end
-
             setupBotFollowSystem()
         else
             Library:Notify("Bot Follow Dimatikan", 3)
-
             followAllowed = false
-
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
-
             if humanoid and myRootPart then
                 humanoid:MoveTo(myRootPart.Position)
             end
@@ -115,7 +111,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow & Perintah
+-- ✅ Fungsi sistem utama
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -125,7 +121,8 @@ function setupBotFollowSystem()
         print("[INFO] Client ditemukan:", player.Name)
 
         followConnection = player.Chatted:Connect(function(msg)
-            msg = msg:lower()
+            local uid = tostring(localPlayer.UserId)
+            local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
 
             if msg == "!ikuti" then
                 followAllowed = true
@@ -136,42 +133,24 @@ function setupBotFollowSystem()
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Perintah !stop diterima, bot berhenti!", 3)
 
-            elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
+            elseif msg == "!jaga1" and uid == "8802945328" then
                 followAllowed = false
-                Library:Notify("Bot menjaga depan", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 5)
-                end
+                humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 5)
 
-            elseif msg == "!jaga2" and tostring(localPlayer.UserId) == "8802949363" then
+            elseif msg == "!jaga2" and uid == "8802949363" then
                 followAllowed = false
-                Library:Notify("Bot menjaga kanan", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    humanoid:MoveTo(hrp.Position + hrp.CFrame.RightVector * 5)
-                end
+                humanoid:MoveTo(hrp.Position + hrp.CFrame.RightVector * 5)
 
-            elseif msg == "!jaga3" and tostring(localPlayer.UserId) == "8802939883" then
+            elseif msg == "!jaga3" and uid == "8802939883" then
                 followAllowed = false
-                Library:Notify("Bot menjaga kiri", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    humanoid:MoveTo(hrp.Position - hrp.CFrame.RightVector * 5)
-                end
+                humanoid:MoveTo(hrp.Position - hrp.CFrame.RightVector * 5)
 
-            elseif msg == "!jaga4" and tostring(localPlayer.UserId) == "8802998147" then
+            elseif msg == "!jaga4" and uid == "8802998147" then
                 followAllowed = false
-                Library:Notify("Bot menjaga belakang", 3)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5)
-                end
+                humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5)
 
             elseif msg == "!formasi" then
                 followAllowed = false
-                local uid = tostring(localPlayer.UserId)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     if uid == "8802945328" then
                         Library:Notify("Formasi: Bot depan aktif", 3)
@@ -186,6 +165,18 @@ function setupBotFollowSystem()
                         Library:Notify("Formasi: Bot belakang aktif", 3)
                         humanoid:MoveTo(hrp.Position - hrp.CFrame.LookVector * 5)
                     end
+
+                    -- 🛡️ Deteksi sentuhan saat formasi
+                    local touchedConn
+                    touchedConn = hrp.Touched:Connect(function(hit)
+                        local toucher = Players:GetPlayerFromCharacter(hit.Parent)
+                        if toucher and toucher ~= client then
+                            task.spawn(function()
+                                wait(math.random(1, 3) / 10)
+                                ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("Harap menjauh, Area Vip!", "All")
+                            end)
+                        end
+                    end)
                 end
             end
         end)
