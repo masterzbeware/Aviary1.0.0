@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -115,7 +115,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow & Perintah
+-- ✅ Sistem Follow & Perintah + Formasi + Absen
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -200,6 +200,26 @@ function setupBotFollowSystem()
                     end
                 end
 
+            elseif msg == "!formasi3" then
+                followAllowed = false
+                local uid = tostring(localPlayer.UserId)
+                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    if uid == "8802945328" then
+                        Library:Notify("Formasi3: Bot kiri banget aktif", 3)
+                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6)
+                    elseif uid == "8802949363" then
+                        Library:Notify("Formasi3: Bot kiri aktif", 3)
+                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2)
+                    elseif uid == "8802939883" then
+                        Library:Notify("Formasi3: Bot kanan aktif", 3)
+                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2)
+                    elseif uid == "8802998147" then
+                        Library:Notify("Formasi3: Bot kanan banget aktif", 3)
+                        humanoid:MoveTo(hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6)
+                    end
+                end
+
             elseif msg == "!absen" then
                 followAllowed = false
                 Library:Notify("Perintah !absen diterima. Bot absen satu per satu.", 5)
@@ -222,21 +242,17 @@ function setupBotFollowSystem()
                     task.wait((giliran - 1) * 2.5)
 
                     local posisiAwal = myRootPart.Position
-                    local posisiAbsen = hrpClient.Position + hrpClient.CFrame.LookVector * 3
+                    local posisiAbsen = hrpClient.Position + hrpClient.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
 
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrpClient.Position)
+
                     humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
 
-                    task.wait(0.5)
-                    myRootPart.CFrame = CFrame.lookAt(posisiAbsen, hrpClient.Position)
-
                     task.wait(1.5)
-                    humanoid:MoveTo(posisiAwal)
-                    humanoid.MoveToFinished:Wait()
 
-                    task.wait(0.3)
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrpClient.Position)
+                    myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
+                    humanoid:MoveTo(posisiAwal)
                 end)
             end
         end)
