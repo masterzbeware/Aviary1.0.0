@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -223,8 +223,13 @@ function setupBotFollowSystem()
 
                 local target = formasi[uid]
                 if target then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                     humanoid:MoveTo(target)
+                    task.spawn(function()
+                        humanoid.MoveToFinished:Wait()
+                        if myRootPart and hrp then
+                            myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                        end
+                    end)
                 end
 
             -- 💂 Absen
