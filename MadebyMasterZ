@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -115,7 +115,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow & Perintah + Absen Natural
+-- ✅ Sistem Follow & Perintah
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -134,7 +134,7 @@ function setupBotFollowSystem()
 
             elseif msg == "!ikuti" then
                 followAllowed = true
-                Library:Notify("Perintah !ikuti diterima, bot mengikuti!", 3)
+                Library:Notify("Perintah !ikuti diterima, bot mengikuti sejajar!", 3)
 
             elseif msg == "!jaga1" and tostring(localPlayer.UserId) == "8802945328" then
                 followAllowed = false
@@ -199,21 +199,15 @@ function setupBotFollowSystem()
                 if not hrpClient then return end
 
                 task.spawn(function()
-                    -- Tunggu giliran
                     task.wait((giliran - 1) * 2.5)
-
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrpClient.Position + hrpClient.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
 
-                    -- Hadapkan ke client saat maju
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrpClient.Position)
-
                     humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
 
                     task.wait(1.5)
-
-                    -- Hadapkan ke posisi awal
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
                     humanoid:MoveTo(posisiAwal)
                 end)
@@ -228,14 +222,21 @@ function setupBotFollowSystem()
     Players.PlayerAdded:Connect(setupClient)
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
+    -- ✅ FOLLOW SEJAJAR DENGAN CLIENT
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
-                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
-                local dist = (myRootPart.Position - followPos).Magnitude
-                if dist > jarakMinimum then
-                    humanoid:MoveTo(followPos)
+                local direction = myRootPart.Position - targetHRP.Position
+                if direction.Magnitude > 0.1 then
+                    direction = direction.Unit
+                    local offset = Vector3.new(direction.X, 0, direction.Z) * jarakIkut
+                    local followPos = targetHRP.Position + offset
+
+                    local dist = (myRootPart.Position - followPos).Magnitude
+                    if dist > jarakMinimum then
+                        humanoid:MoveTo(followPos)
+                    end
                 end
             end
         end
