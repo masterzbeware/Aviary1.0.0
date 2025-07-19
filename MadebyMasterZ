@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -115,7 +115,7 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Sistem Follow & Perintah + Absen
+-- ✅ Sistem Follow & Perintah + Absen Natural
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -195,28 +195,26 @@ function setupBotFollowSystem()
                 local giliran = urutanBot[uid]
                 if not giliran then return end
 
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then return end
+                local hrpClient = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
+                if not hrpClient then return end
 
                 task.spawn(function()
+                    -- Tunggu giliran
                     task.wait((giliran - 1) * 2.5)
 
                     local posisiAwal = myRootPart.Position
-                    local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
+                    local posisiAbsen = hrpClient.Position + hrpClient.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
 
                     -- Hadapkan ke client saat maju
-                    local lookCFrame = CFrame.new(posisiAbsen, hrp.Position)
-                    localPlayer.Character:SetPrimaryPartCFrame(lookCFrame)
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrpClient.Position)
 
                     humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
 
                     task.wait(1.5)
 
-                    -- Hadapkan ke posisi awal saat balik
-                    local backCFrame = CFrame.new(posisiAwal, posisiAwal + (posisiAwal - hrp.Position))
-                    localPlayer.Character:SetPrimaryPartCFrame(backCFrame)
-
+                    -- Hadapkan ke posisi awal
+                    myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
                     humanoid:MoveTo(posisiAwal)
                 end)
             end
