@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v12.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -205,12 +205,26 @@ function setupBotFollowSystem()
                 runStopCommand()
 
             elseif msg == "!refresh" then
+                -- Improved refresh command
                 runStopCommand()
+                task.wait(0.5) -- Give time for cleanup
+                if humanoid and myRootPart then
+                    humanoid:MoveTo(myRootPart.Position)
+                end
+                task.wait(0.5)
                 Toggles.AktifkanFollow:SetValue(false)
+                task.wait(0.5)
+                Toggles.AktifkanFollow:SetValue(true)
+                Library:Notify("✅ Sistem berhasil di-refresh", 3)
 
             elseif msg == "!aktif" then
-                Toggles.AktifkanFollow:SetValue(true)
-                Library:Notify("✅ Toggle Follow diaktifkan ulang dengan !aktif", 3)
+                -- Improved aktif command
+                if not toggleAktif then
+                    Toggles.AktifkanFollow:SetValue(true)
+                    Library:Notify("✅ Toggle Follow diaktifkan", 3)
+                else
+                    Library:Notify("⚠️ Bot sudah dalam keadaan aktif", 3)
+                end
 
             elseif msg == "!gabung" then
                 followAllowed = false
