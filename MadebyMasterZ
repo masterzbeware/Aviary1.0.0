@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -138,7 +138,7 @@ function setupBotFollowSystem()
             -- ✅ STOP
             if msg == "!stop" then
                 followAllowed = false
-                humanoid:MoveTo(myRootPart.Position + Vector3.new(0.001, 0, 0))
+                humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Bot berhenti & keluar dari sync", 3)
 
                 local args = { "leaveSync" }
@@ -168,11 +168,6 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal melakukan sync", 3)
                 end
 
-            -- ✅ IKUTI NAMA
-            elseif msg == "!ikuti" then
-                followAllowed = true
-                Library:Notify("Bot mengikuti", 3)
-
             -- ✅ IKUTI [DisplayName]
             elseif msg:match("^!ikuti ") then
                 local targetDisplayName = msg:sub(8):lower()
@@ -185,6 +180,15 @@ function setupBotFollowSystem()
                         break
                     end
                 end
+
+            -- ✅ IKUTI (tanpa nama)
+            elseif msg == "!ikuti" then
+                followAllowed = true
+                Library:Notify("Bot mengikuti", 3)
+
+                -- Kosongkan Textbox dan kembali ke client awal
+                Options.TextboxDisplayName:SetValue("")
+                client = player
 
             -- ✅ FORMASI 1/2/3
             elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
@@ -263,9 +267,7 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
-        if not followAllowed then return end -- 🔒 Tambahan agar loop tidak lanjut jika tidak follow
-
-        if toggleAktif and client and client.Character and humanoid and myRootPart then
+        if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
