@@ -38,6 +38,26 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
+-- ✅ Fungsi reset & stop
+local function runStopCommand()
+    followAllowed = false
+    if humanoid and myRootPart then
+        humanoid:MoveTo(myRootPart.Position)
+    end
+    Options.TextboxDisplayName:SetValue("")
+    Options.TextboxFormasi1:SetValue("")
+    Options.TextboxFormasi2:SetValue("")
+    Options.TextboxFormasi3:SetValue("")
+    local args = { "leaveSync" }
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Connections")
+            :WaitForChild("dataProviders")
+            :WaitForChild("animationHandler")
+            :InvokeServer(unpack(args))
+    end)
+    Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
+end
+
 -- ✅ UI LEFT
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
@@ -148,26 +168,6 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
--- ✅ Fungsi untuk !stop otomatis
-local function runStopCommand()
-    followAllowed = false
-    humanoid:MoveTo(myRootPart.Position)
-    Library:Notify("Bot berhenti & keluar dari sync", 3)
-
-    Options.TextboxDisplayName:SetValue("")
-    Options.TextboxFormasi1:SetValue("")
-    Options.TextboxFormasi2:SetValue("")
-    Options.TextboxFormasi3:SetValue("")
-
-    local args = { "leaveSync" }
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Connections")
-            :WaitForChild("dataProviders")
-            :WaitForChild("animationHandler")
-            :InvokeServer(unpack(args))
-    end)
-end
-
 -- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
@@ -184,6 +184,10 @@ function setupBotFollowSystem()
 
             if msg == "!stop" then
                 runStopCommand()
+
+            elseif msg == "!refresh" then
+                runStopCommand()
+                Toggles.AktifkanFollow:SetValue(false)
 
             elseif msg == "!gabung" then
                 followAllowed = false
@@ -215,7 +219,9 @@ function setupBotFollowSystem()
                 end
 
             elseif msg == "!ikuti" then
-                runStopCommand()
+                if not followAllowed then
+                    runStopCommand()
+                end
                 followAllowed = true
                 Library:Notify("Bot mengikuti", 3)
                 Options.TextboxDisplayName:SetValue("")
