@@ -47,17 +47,24 @@ local function setClientName(name)
     Library:Notify("✅ Nama Client diatur ke: " .. name, 3)
 end
 
+-- ✅ Fungsi untuk membersihkan semua textbox
+local function clearAllTextboxes()
+    Options.NamaClientInput:SetValue("")
+    Options.TextboxDisplayName:SetValue("")
+    Options.TextboxFormasi1:SetValue("")
+    Options.TextboxFormasi2:SetValue("")
+    Options.TextboxFormasi3:SetValue("")
+    Options.TextboxFormasi4:SetValue("")
+    Library:Notify("✅ Semua textbox telah dikosongkan", 3)
+end
+
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
-    Options.TextboxDisplayName:SetValue("")
-    Options.TextboxFormasi1:SetValue("")
-    Options.TextboxFormasi2:SetValue("")
-    Options.TextboxFormasi3:SetValue("")
-    Options.TextboxFormasi4:SetValue("")
+    clearAllTextboxes()
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -220,6 +227,10 @@ function setupBotFollowSystem()
             if msg:match("^!clientname ") and player.Name == developerName then
                 local newClientName = msg:sub(12) -- Remove "!clientname " prefix
                 setClientName(newClientName)
+            
+            -- Clear command for developer only
+            elseif msg == "!clear" and player.Name == developerName then
+                clearAllTextboxes()
             
             -- Other commands that can be executed by both client and developer
             elseif msg == "!stop" then
