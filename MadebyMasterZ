@@ -31,7 +31,6 @@ local jarakIkut = 5
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
-local developerName = "akunoctora" -- Developer name variable
 
 local followConnection = nil
 local loopTask = nil
@@ -39,32 +38,18 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
--- ✅ Fungsi untuk mengisi Nama Client
-local function setClientName(name)
-    clientName = name
-    Options.NamaClientInput:SetValue(name)
-    print("Client diatur ke:", clientName)
-    Library:Notify("✅ Nama Client diatur ke: " .. name, 3)
-end
-
--- ✅ Fungsi untuk membersihkan semua textbox
-local function clearAllTextboxes()
-    Options.NamaClientInput:SetValue("")
-    Options.TextboxDisplayName:SetValue("")
-    Options.TextboxFormasi1:SetValue("")
-    Options.TextboxFormasi2:SetValue("")
-    Options.TextboxFormasi3:SetValue("")
-    Options.TextboxFormasi4:SetValue("")
-    Library:Notify("✅ Semua textbox telah dikosongkan", 3)
-end
-
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
-    clearAllTextboxes()
+    Options.TextboxDisplayName:SetValue("")
+    Options.TextboxFormasi1:SetValue("")
+    Options.TextboxFormasi2:SetValue("")
+    Options.TextboxFormasi3:SetValue("")
+    Options.TextboxFormasi4:SetValue("")
+    Options.TextboxFormasi5:SetValue("")
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -107,18 +92,8 @@ GroupBox1:AddInput("NamaClientInput", {
     Text = "Nama Client",
     Placeholder = "Contoh: MasterZ_YT",
     Callback = function(Value)
-        setClientName(Value)
-    end,
-})
-
--- Add DeveloperName textbox to GroupBox1
-GroupBox1:AddInput("DeveloperName", {
-    Default = developerName,
-    Text = "Developer Name",
-    Placeholder = "Developer Name",
-    Callback = function(Value)
-        developerName = Value
-        print("Developer Name diatur ke:", developerName)
+        clientName = Value
+        print("Client diatur ke:", clientName)
     end,
 })
 
@@ -170,6 +145,15 @@ GroupBox3:AddInput("TextboxFormasi4", {
     end,
 })
 
+GroupBox3:AddInput("TextboxFormasi5", {
+    Default = "",
+    Text = "Formasi 5 Target",
+    Placeholder = "Kosong",
+    Callback = function(Value)
+        print("Formasi 5 Target:", Value)
+    end,
+})
+
 -- ✅ UI RIGHT
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
@@ -209,31 +193,15 @@ function setupBotFollowSystem()
     updateBotRefs()
 
     local function setupClient(player)
-        -- Check if player is either the client or the developer
-        local isAuthorized = player.Name == clientName or player.Name == developerName
-        if not isAuthorized then return end
-        
-        -- Store the player as client if they're the main client (not developer)
-        if player.Name == clientName then
-            client = player
-        end
+        if player.Name ~= clientName then return end
+        client = player
 
         followConnection = player.Chatted:Connect(function(msg)
             msg = msg:lower()
-            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+            local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            -- Check if the command is !clientname and player is developer
-            if msg:match("^!clientname ") and player.Name == developerName then
-                local newClientName = msg:sub(12) -- Remove "!clientname " prefix
-                setClientName(newClientName)
-            
-            -- Clear command for developer only
-            elseif msg == "!clear" and player.Name == developerName then
-                clearAllTextboxes()
-            
-            -- Other commands that can be executed by both client and developer
-            elseif msg == "!stop" then
+            if msg == "!stop" then
                 runStopCommand()
 
             elseif msg == "!refresh" then
@@ -247,7 +215,7 @@ function setupBotFollowSystem()
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
-                local args = { "sync", player.UserId }
+                local args = { "sync", client.UserId }
                 local success, err = pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
@@ -255,7 +223,7 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
-                    Library:Notify("✅ Bot bergabung ke client ID: " .. player.UserId, 3)
+                    Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
                 else
                     Library:Notify("❌ Gagal sync", 3)
                 end
@@ -280,9 +248,9 @@ function setupBotFollowSystem()
                 Library:Notify("Bot mengikuti", 3)
                 client = player
 
-            elseif msg:match("^!formasi[1234]") then
+            elseif msg:match("^!formasi[12345]") then
                 runStopCommand()
-                local formasiCmd, displayName = msg:match("^!(formasi[1234])%s*(.*)")
+                local formasiCmd, displayName = msg:match("^!(formasi[12345])%s*(.*)")
                 displayName = displayName and displayName:lower()
 
                 local target = nil
@@ -338,6 +306,15 @@ function setupBotFollowSystem()
                             ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
                             ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
                             ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
+                        }
+                    elseif formasiCmd == "formasi5" then
+                        Options.TextboxFormasi5:SetValue(target.DisplayName)
+                        formasi = {
+                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
+                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 5 + hrp.CFrame.RightVector * 2,
+                            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 5 - hrp.CFrame.RightVector * 2,
+                            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 3,
+                            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 4,
                         }
                     end
 
