@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v112.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -138,7 +138,7 @@ function setupBotFollowSystem()
             -- ✅ STOP
             if msg == "!stop" then
                 followAllowed = false
-                humanoid:MoveTo(myRootPart.Position)
+                humanoid:MoveTo(myRootPart.Position + Vector3.new(0.001, 0, 0))
                 Library:Notify("Bot berhenti & keluar dari sync", 3)
 
                 local args = { "leaveSync" }
@@ -263,7 +263,9 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
-        if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
+        if not followAllowed then return end -- 🔒 Tambahan agar loop tidak lanjut jika tidak follow
+
+        if toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
