@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -84,6 +84,33 @@ GroupBox3:AddInput("TextboxDisplayName", {
     Placeholder = "Kosong",
     Callback = function(Value)
         print("DisplayName target:", Value)
+    end,
+})
+
+GroupBox3:AddInput("TextboxFormasi1", {
+    Default = "",
+    Text = "Formasi 1 Target",
+    Placeholder = "Kosong",
+    Callback = function(Value)
+        print("Formasi 1 Target:", Value)
+    end,
+})
+
+GroupBox3:AddInput("TextboxFormasi2", {
+    Default = "",
+    Text = "Formasi 2 Target",
+    Placeholder = "Kosong",
+    Callback = function(Value)
+        print("Formasi 2 Target:", Value)
+    end,
+})
+
+GroupBox3:AddInput("TextboxFormasi3", {
+    Default = "",
+    Text = "Formasi 3 Target",
+    Placeholder = "Kosong",
+    Callback = function(Value)
+        print("Formasi 3 Target:", Value)
     end,
 })
 
@@ -185,44 +212,61 @@ function setupBotFollowSystem()
             elseif msg == "!ikuti" then
                 followAllowed = true
                 Library:Notify("Bot mengikuti", 3)
-
-                -- Kosongkan Textbox dan kembali ke client awal
                 Options.TextboxDisplayName:SetValue("")
                 client = player
 
-            -- ✅ FORMASI 1/2/3
-            elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
+            -- ✅ FORMASI 1
+            elseif msg == "!formasi1" then
                 followAllowed = false
-                local uid = tostring(localPlayer.UserId)
-                local formasi = {}
+                Options.TextboxFormasi1:SetValue(player.DisplayName)
 
-                if msg == "!formasi1" then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                        ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
-                    }
-                elseif msg == "!formasi2" then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802991722"] = hrp.Position,
-                    }
-                elseif msg == "!formasi3" then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
-                        ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
-                        ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-                        ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
-                    }
+                formasi = {
+                    ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
+                    ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
+                    ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
+                    ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
+                    ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
+                }
+
+                local target = formasi[tostring(localPlayer.UserId)]
+                if target then
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                    humanoid:MoveTo(target)
                 end
 
-                local target = formasi[uid]
+            -- ✅ FORMASI 2
+            elseif msg == "!formasi2" then
+                followAllowed = false
+                Options.TextboxFormasi2:SetValue(player.DisplayName)
+
+                formasi = {
+                    ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+                    ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                    ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+                    ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                    ["8802991722"] = hrp.Position,
+                }
+
+                local target = formasi[tostring(localPlayer.UserId)]
+                if target then
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                    humanoid:MoveTo(target)
+                end
+
+            -- ✅ FORMASI 3
+            elseif msg == "!formasi3" then
+                followAllowed = false
+                Options.TextboxFormasi3:SetValue(player.DisplayName)
+
+                formasi = {
+                    ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
+                    ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
+                    ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
+                    ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
+                    ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
+                }
+
+                local target = formasi[tostring(localPlayer.UserId)]
                 if target then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
                     humanoid:MoveTo(target)
