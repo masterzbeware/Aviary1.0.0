@@ -48,6 +48,7 @@ local function runStopCommand()
     Options.TextboxFormasi1:SetValue("")
     Options.TextboxFormasi2:SetValue("")
     Options.TextboxFormasi3:SetValue("")
+    Options.TextboxFormasi4:SetValue("")
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -134,6 +135,15 @@ GroupBox3:AddInput("TextboxFormasi3", {
     end,
 })
 
+GroupBox3:AddInput("TextboxFormasi4", {
+    Default = "",
+    Text = "Formasi 4 Target",
+    Placeholder = "Kosong",
+    Callback = function(Value)
+        print("Formasi 4 Target:", Value)
+    end,
+})
+
 -- ✅ UI RIGHT
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
@@ -178,7 +188,6 @@ function setupBotFollowSystem()
 
         followConnection = player.Chatted:Connect(function(msg)
             msg = msg:lower()
-
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
@@ -188,6 +197,10 @@ function setupBotFollowSystem()
             elseif msg == "!refresh" then
                 runStopCommand()
                 Toggles.AktifkanFollow:SetValue(false)
+
+            elseif msg == "!aktif" then
+                Toggles.AktifkanFollow:SetValue(true)
+                Library:Notify("✅ Toggle Follow diaktifkan ulang dengan !aktif", 3)
 
             elseif msg == "!gabung" then
                 followAllowed = false
@@ -219,17 +232,15 @@ function setupBotFollowSystem()
                 end
 
             elseif msg == "!ikuti" then
-                if not followAllowed then
-                    runStopCommand()
-                end
+                if not followAllowed then runStopCommand() end
                 followAllowed = true
-                Library:Notify("Bot mengikuti", 3)
                 Options.TextboxDisplayName:SetValue("")
+                Library:Notify("Bot mengikuti", 3)
                 client = player
 
-            elseif msg:match("^!formasi[123]") then
+            elseif msg:match("^!formasi[1234]") then
                 runStopCommand()
-                local formasiCmd, displayName = msg:match("^!(formasi[123])%s*(.*)")
+                local formasiCmd, displayName = msg:match("^!(formasi[1234])%s*(.*)")
                 displayName = displayName and displayName:lower()
 
                 local target = nil
@@ -247,19 +258,11 @@ function setupBotFollowSystem()
 
                 if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = target.Character.HumanoidRootPart
-
-                    if formasiCmd == "formasi1" then
-                        Options.TextboxFormasi1:SetValue(target.DisplayName)
-                    elseif formasiCmd == "formasi2" then
-                        Options.TextboxFormasi2:SetValue(target.DisplayName)
-                    elseif formasiCmd == "formasi3" then
-                        Options.TextboxFormasi3:SetValue(target.DisplayName)
-                    end
-
                     local uid = tostring(localPlayer.UserId)
                     local formasi = {}
 
                     if formasiCmd == "formasi1" then
+                        Options.TextboxFormasi1:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
                             ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
@@ -268,6 +271,7 @@ function setupBotFollowSystem()
                             ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
                         }
                     elseif formasiCmd == "formasi2" then
+                        Options.TextboxFormasi2:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
                             ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
@@ -276,12 +280,22 @@ function setupBotFollowSystem()
                             ["8802991722"] = hrp.Position,
                         }
                     elseif formasiCmd == "formasi3" then
+                        Options.TextboxFormasi3:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
                             ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
                             ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
                             ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
                             ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
+                        }
+                    elseif formasiCmd == "formasi4" then
+                        Options.TextboxFormasi4:SetValue(target.DisplayName)
+                        formasi = {
+                            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
+                            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 3,
+                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
+                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
+                            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
                         }
                     end
 
