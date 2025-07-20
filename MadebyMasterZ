@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -148,6 +148,26 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
+-- ✅ Fungsi untuk !stop otomatis
+local function runStopCommand()
+    followAllowed = false
+    humanoid:MoveTo(myRootPart.Position)
+    Library:Notify("Bot berhenti & keluar dari sync", 3)
+
+    Options.TextboxDisplayName:SetValue("")
+    Options.TextboxFormasi1:SetValue("")
+    Options.TextboxFormasi2:SetValue("")
+    Options.TextboxFormasi3:SetValue("")
+
+    local args = { "leaveSync" }
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Connections")
+            :WaitForChild("dataProviders")
+            :WaitForChild("animationHandler")
+            :InvokeServer(unpack(args))
+    end)
+end
+
 -- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
@@ -163,23 +183,7 @@ function setupBotFollowSystem()
             if not hrp then return end
 
             if msg == "!stop" then
-                followAllowed = false
-                humanoid:MoveTo(myRootPart.Position)
-                Library:Notify("Bot berhenti & keluar dari sync", 3)
-
-                -- ✅ Kosongkan semua textbox formasi dan displayname
-                Options.TextboxDisplayName:SetValue("")
-                Options.TextboxFormasi1:SetValue("")
-                Options.TextboxFormasi2:SetValue("")
-                Options.TextboxFormasi3:SetValue("")
-
-                local args = { "leaveSync" }
-                pcall(function()
-                    ReplicatedStorage:WaitForChild("Connections")
-                        :WaitForChild("dataProviders")
-                        :WaitForChild("animationHandler")
-                        :InvokeServer(unpack(args))
-                end)
+                runStopCommand()
 
             elseif msg == "!gabung" then
                 followAllowed = false
@@ -198,6 +202,7 @@ function setupBotFollowSystem()
                 end
 
             elseif msg:match("^!ikuti ") then
+                runStopCommand()
                 local targetDisplayName = msg:sub(8):lower()
                 for _, p in ipairs(Players:GetPlayers()) do
                     if p.DisplayName:lower() == targetDisplayName then
@@ -210,13 +215,14 @@ function setupBotFollowSystem()
                 end
 
             elseif msg == "!ikuti" then
+                runStopCommand()
                 followAllowed = true
                 Library:Notify("Bot mengikuti", 3)
                 Options.TextboxDisplayName:SetValue("")
                 client = player
 
             elseif msg:match("^!formasi[123]") then
-                followAllowed = false
+                runStopCommand()
                 local formasiCmd, displayName = msg:match("^!(formasi[123])%s*(.*)")
                 displayName = displayName and displayName:lower()
 
@@ -283,7 +289,7 @@ function setupBotFollowSystem()
                 end
 
             elseif msg == "!absen" then
-                followAllowed = false
+                runStopCommand()
                 local uid = tostring(localPlayer.UserId)
                 local urutanBot = {
                     ["8802945328"] = 1,
