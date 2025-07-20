@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v12.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -20,9 +20,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user"),
 }
 
-----------------------------------------------------------------
 -- ✅ Variabel Global
-----------------------------------------------------------------
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -40,9 +38,7 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
-----------------------------------------------------------------
--- ✅ UI LEFT (Main Options)
-----------------------------------------------------------------
+-- ✅ UI LEFT
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
@@ -79,9 +75,19 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
-----------------------------------------------------------------
--- ✅ UI RIGHT (Pengaturan Jarak)
-----------------------------------------------------------------
+-- ✅ Tambahan GroupBox3: Textbox Bebas
+local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
+
+GroupBox3:AddInput("TextboxBebas", {
+    Default = "",
+    Text = "Textbox Bebas",
+    Placeholder = "Isi sesuatu...",
+    Callback = function(Value)
+        print("Isi Textbox:", Value)
+    end,
+})
+
+-- ✅ UI RIGHT
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
@@ -90,7 +96,9 @@ GroupBox2:AddInput("JarakIkutInput", {
     Placeholder = "Contoh: 5",
     Callback = function(Value)
         local number = tonumber(Value)
-        if number then jarakIkut = number end
+        if number then
+            jarakIkut = number
+        end
     end,
 })
 
@@ -100,22 +108,20 @@ GroupBox2:AddInput("JarakMinimumInput", {
     Placeholder = "Contoh: 2",
     Callback = function(Value)
         local number = tonumber(Value)
-        if number then jarakMinimum = number end
+        if number then
+            jarakMinimum = number
+        end
     end,
 })
 
-----------------------------------------------------------------
 -- ✅ Fungsi bantu
-----------------------------------------------------------------
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
-----------------------------------------------------------------
 -- ✅ Sistem Follow & Perintah
-----------------------------------------------------------------
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -125,31 +131,33 @@ function setupBotFollowSystem()
 
         followConnection = player.Chatted:Connect(function(msg)
             msg = msg:lower()
+
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            -- 💂 !stop
             if msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
                 Library:Notify("Bot berhenti & keluar dari sync", 3)
-                pcall(function()
+
+                local args = { "leaveSync" }
+                local success, err = pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
                         :WaitForChild("animationHandler")
-                        :InvokeServer("leaveSync")
+                        :InvokeServer(unpack(args))
                 end)
+                if not success then
+                    warn("Gagal leaveSync:", err)
+                end
 
-            -- 💂 !gabung
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
-                    ReplicatedStorage:WaitForChild("Connections")
-                        :WaitForChild("dataProviders")
-                        :WaitForChild("commandHandler")
-                        :InvokeServer(unpack(args))
+                    ReplicatedStorage:WaitForChild("Connections"):WaitForChild("dataProviders")
+                        :WaitForChild("commandHandler"):InvokeServer(unpack(args))
                 end)
                 if success then
                     Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
@@ -158,12 +166,10 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal melakukan sync", 3)
                 end
 
-            -- 💂 !ikuti
             elseif msg == "!ikuti" then
                 followAllowed = true
-                Library:Notify("Bot mengikuti dari belakang client", 3)
+                Library:Notify("Bot mengikuti", 3)
 
-            -- 💂 Formasi 1–3
             elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                 followAllowed = false
                 local uid = tostring(localPlayer.UserId)
@@ -183,7 +189,7 @@ function setupBotFollowSystem()
                         ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
                         ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802991722"] = hrp.Position + Vector3.new(0, 0, 6),
+                        ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 2,
                     }
                 elseif msg == "!formasi3" then
                     formasi = {
@@ -201,7 +207,6 @@ function setupBotFollowSystem()
                     humanoid:MoveTo(target)
                 end
 
-            -- 💂 !absen
             elseif msg == "!absen" then
                 followAllowed = false
                 Library:Notify("Bot absen satu per satu", 5)
@@ -214,7 +219,6 @@ function setupBotFollowSystem()
                     ["8802998147"] = 4,
                     ["8802991722"] = 5,
                 }
-
                 local giliran = urutanBot[uid]
                 if not giliran then return end
 
@@ -240,19 +244,17 @@ function setupBotFollowSystem()
     Players.PlayerAdded:Connect(setupClient)
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    ----------------------------------------------------------------
-    -- ✅ LOOP FOLLOW: Mengikuti dari belakang, sejajar arah client
-    ----------------------------------------------------------------
+    -- ✅ Follow system update
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
-
                 if dist > jarakMinimum then
-                    local lookVector = targetHRP.CFrame.LookVector
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, myRootPart.Position + lookVector)
+                    -- Arah bot disamakan dengan arah client
+                    local lookDirection = targetHRP.CFrame.LookVector
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, myRootPart.Position + lookDirection)
                     humanoid:MoveTo(followPos)
                 end
             end
