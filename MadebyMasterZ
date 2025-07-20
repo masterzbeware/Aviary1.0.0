@@ -39,6 +39,14 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
+-- ✅ Fungsi untuk mengisi Nama Client
+local function setClientName(name)
+    clientName = name
+    Options.NamaClientInput:SetValue(name)
+    print("Client diatur ke:", clientName)
+    Library:Notify("✅ Nama Client diatur ke: " .. name, 3)
+end
+
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
@@ -92,8 +100,7 @@ GroupBox1:AddInput("NamaClientInput", {
     Text = "Nama Client",
     Placeholder = "Contoh: MasterZ_YT",
     Callback = function(Value)
-        clientName = Value
-        print("Client diatur ke:", clientName)
+        setClientName(Value)
     end,
 })
 
@@ -209,7 +216,13 @@ function setupBotFollowSystem()
             local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            if msg == "!stop" then
+            -- Check if the command is !clientname and player is developer
+            if msg:match("^!clientname ") and player.Name == developerName then
+                local newClientName = msg:sub(12) -- Remove "!clientname " prefix
+                setClientName(newClientName)
+            
+            -- Other commands that can be executed by both client and developer
+            elseif msg == "!stop" then
                 runStopCommand()
 
             elseif msg == "!refresh" then
