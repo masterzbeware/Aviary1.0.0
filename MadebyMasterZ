@@ -31,6 +31,7 @@ local jarakIkut = 5
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
+local currentFormasiTarget = nil
 
 local followConnection = nil
 local loopTask = nil
@@ -41,6 +42,7 @@ local client = nil
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
+    currentFormasiTarget = nil
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
@@ -77,12 +79,9 @@ GroupBox1:AddToggle("AktifkanFollow", {
             setupBotFollowSystem()
         else
             Library:Notify("Bot Follow Dimatikan", 3)
-            followAllowed = false
+            runStopCommand()
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
-            if humanoid and myRootPart then
-                humanoid:MoveTo(myRootPart.Position)
-            end
         end
     end,
 })
@@ -188,6 +187,26 @@ local function updateBotRefs()
     myRootPart = character:WaitForChild("HumanoidRootPart")
 end
 
+local function fullRefresh()
+    runStopCommand()
+    task.wait(0.5)
+    
+    -- Reset semua variabel
+    currentFormasiTarget = nil
+    followAllowed = false
+    
+    -- Putuskan semua koneksi lama
+    if followConnection then followConnection:Disconnect() end
+    if loopTask then loopTask:Disconnect() end
+    
+    -- Inisialisasi ulang sistem
+    if toggleAktif then
+        setupBotFollowSystem()
+    end
+    
+    Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
+end
+
 -- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
@@ -205,18 +224,16 @@ function setupBotFollowSystem()
                 runStopCommand()
 
             elseif msg == "!refresh" then
-                -- Improved refresh command that clears display name
-                runStopCommand()
-                Options.TextboxDisplayName:SetValue("")  -- Clear display name textbox
-                task.wait(0.5) -- Give time for cleanup
-                if humanoid and myRootPart then
-                    humanoid:MoveTo(myRootPart.Position)
+                fullRefresh()
+
+            elseif msg == "!aktif" then
+                if not toggleAktif then
+                    Toggles.AktifkanFollow:SetValue(true)
+                    Library:Notify("✅ Toggle Follow diaktifkan", 3)
+                else
+                    fullRefresh()
+                    Library:Notify("⚠️ Bot sudah aktif, melakukan refresh...", 3)
                 end
-                task.wait(0.5)
-                Toggles.AktifkanFollow:SetValue(false)
-                task.wait(0.5)
-                Toggles.AktifkanFollow:SetValue(true)
-                Library:Notify("✅ Sistem berhasil di-refresh (DisplayName dikosongkan)", 3)
 
             elseif msg == "!gabung" then
                 followAllowed = false
@@ -237,22 +254,28 @@ function setupBotFollowSystem()
             elseif msg:match("^!ikuti ") then
                 runStopCommand()
                 local targetDisplayName = msg:sub(8):lower()
+                local found = false
                 for _, p in ipairs(Players:GetPlayers()) do
                     if p.DisplayName:lower() == targetDisplayName then
                         client = p
                         followAllowed = true
+                        currentFormasiTarget = p
                         Library:Notify("Mengikuti: " .. p.DisplayName, 3)
                         Options.TextboxDisplayName:SetValue(p.DisplayName)
+                        found = true
                         break
                     end
+                end
+                if not found then
+                    Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
                 end
 
             elseif msg == "!ikuti" then
                 if not followAllowed then runStopCommand() end
                 followAllowed = true
+                currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
-                Library:Notify("Bot mengikuti", 3)
-                client = player
+                Library:Notify("Bot mengikuti client utama", 3)
 
             elseif msg:match("^!formasi[12345]") then
                 runStopCommand()
@@ -264,12 +287,13 @@ function setupBotFollowSystem()
                     for _, p in ipairs(Players:GetPlayers()) do
                         if p.DisplayName:lower() == displayName then
                             target = p
-                            client = p
+                            currentFormasiTarget = p
                             break
                         end
                     end
                 else
                     target = client
+                    currentFormasiTarget = client
                 end
 
                 if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
@@ -331,6 +355,7 @@ function setupBotFollowSystem()
                     end
                 else
                     Library:Notify("❌ Target tidak ditemukan!", 3)
+                    currentFormasiTarget = nil
                 end
 
             elseif msg == "!absen" then
