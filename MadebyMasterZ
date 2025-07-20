@@ -96,6 +96,16 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
+-- Add DeveloperName textbox to GroupBox1
+GroupBox1:AddInput("DeveloperName", {
+    Default = "akunoctora",
+    Text = "Developer Name",
+    Placeholder = "Developer Name",
+    Callback = function(Value)
+        print("Developer Name:", Value)
+    end,
+})
+
 -- ✅ GroupBox3
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 
