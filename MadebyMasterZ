@@ -31,6 +31,7 @@ local jarakIkut = 5
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
+local developerName = "akunoctora" -- Developer name variable
 
 local followConnection = nil
 local loopTask = nil
@@ -98,11 +99,12 @@ GroupBox1:AddInput("NamaClientInput", {
 
 -- Add DeveloperName textbox to GroupBox1
 GroupBox1:AddInput("DeveloperName", {
-    Default = "akunoctora",
+    Default = developerName,
     Text = "Developer Name",
     Placeholder = "Developer Name",
     Callback = function(Value)
-        print("Developer Name:", Value)
+        developerName = Value
+        print("Developer Name diatur ke:", developerName)
     end,
 })
 
@@ -193,12 +195,18 @@ function setupBotFollowSystem()
     updateBotRefs()
 
     local function setupClient(player)
-        if player.Name ~= clientName then return end
-        client = player
+        -- Check if player is either the client or the developer
+        local isAuthorized = player.Name == clientName or player.Name == developerName
+        if not isAuthorized then return end
+        
+        -- Store the player as client if they're the main client (not developer)
+        if player.Name == clientName then
+            client = player
+        end
 
         followConnection = player.Chatted:Connect(function(msg)
             msg = msg:lower()
-            local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
+            local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
             if msg == "!stop" then
@@ -215,7 +223,7 @@ function setupBotFollowSystem()
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
-                local args = { "sync", client.UserId }
+                local args = { "sync", player.UserId }
                 local success, err = pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
@@ -223,7 +231,7 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
-                    Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
+                    Library:Notify("✅ Bot bergabung ke client ID: " .. player.UserId, 3)
                 else
                     Library:Notify("❌ Gagal sync", 3)
                 end
