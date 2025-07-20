@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v112.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -75,15 +75,15 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
--- ✅ Tambahan GroupBox3: Textbox Bebas
+-- ✅ GroupBox3 di bawah GroupBox1
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 
-GroupBox3:AddInput("TextboxBebas", {
+GroupBox3:AddInput("TextboxDisplayName", {
     Default = "",
-    Text = "Textbox Bebas",
-    Placeholder = "Isi sesuatu...",
+    Text = "Target DisplayName",
+    Placeholder = "Kosong",
     Callback = function(Value)
-        print("Isi Textbox:", Value)
+        print("DisplayName target:", Value)
     end,
 })
 
@@ -135,6 +135,7 @@ function setupBotFollowSystem()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
+            -- ✅ STOP
             if msg == "!stop" then
                 followAllowed = false
                 humanoid:MoveTo(myRootPart.Position)
@@ -151,6 +152,7 @@ function setupBotFollowSystem()
                     warn("Gagal leaveSync:", err)
                 end
 
+            -- ✅ GABUNG
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
@@ -166,10 +168,25 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal melakukan sync", 3)
                 end
 
+            -- ✅ IKUTI NAMA
             elseif msg == "!ikuti" then
                 followAllowed = true
                 Library:Notify("Bot mengikuti", 3)
 
+            -- ✅ IKUTI [DisplayName]
+            elseif msg:match("^!ikuti ") then
+                local targetDisplayName = msg:sub(8):lower()
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p.DisplayName:lower() == targetDisplayName then
+                        client = p
+                        followAllowed = true
+                        Library:Notify("Mengikuti: " .. p.DisplayName, 3)
+                        Options.TextboxDisplayName:SetValue(p.DisplayName)
+                        break
+                    end
+                end
+
+            -- ✅ FORMASI 1/2/3
             elseif msg == "!formasi1" or msg == "!formasi2" or msg == "!formasi3" then
                 followAllowed = false
                 local uid = tostring(localPlayer.UserId)
@@ -181,7 +198,7 @@ function setupBotFollowSystem()
                         ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
                         ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                        ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 7,
+                        ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
                     }
                 elseif msg == "!formasi2" then
                     formasi = {
@@ -189,7 +206,7 @@ function setupBotFollowSystem()
                         ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
                         ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
                         ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 2,
+                        ["8802991722"] = hrp.Position,
                     }
                 elseif msg == "!formasi3" then
                     formasi = {
@@ -207,6 +224,7 @@ function setupBotFollowSystem()
                     humanoid:MoveTo(target)
                 end
 
+            -- ✅ ABSEN
             elseif msg == "!absen" then
                 followAllowed = false
                 Library:Notify("Bot absen satu per satu", 5)
@@ -244,7 +262,6 @@ function setupBotFollowSystem()
     Players.PlayerAdded:Connect(setupClient)
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    -- ✅ Follow system update
     loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
             local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
@@ -252,9 +269,7 @@ function setupBotFollowSystem()
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
-                    -- Arah bot disamakan dengan arah client
-                    local lookDirection = targetHRP.CFrame.LookVector
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, myRootPart.Position + lookDirection)
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                     humanoid:MoveTo(followPos)
                 end
             end
