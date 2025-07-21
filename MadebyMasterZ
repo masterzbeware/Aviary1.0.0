@@ -58,6 +58,16 @@ local function runStopCommand()
             :WaitForChild("animationHandler")
             :InvokeServer(unpack(args))
     end)
+    
+    -- Stop pushup animation if playing
+    local stopArgs = { "stopAnimation", "Push Up" }
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Connections")
+            :WaitForChild("dataProviders")
+            :WaitForChild("animationHandler")
+            :InvokeServer(unpack(stopArgs))
+    end)
+    
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
 end
 
