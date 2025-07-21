@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -18,7 +18,7 @@ local Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab("Main", "user"),
-    Advanced = Window:AddTab("Advanced", "settings")  -- New Advanced tab
+    Advanced = Window:AddTab("Advanced", "settings")
 }
 
 -- ✅ Variabel Global
@@ -181,30 +181,44 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Advanced Tab Content
-local AdvancedGroup1 = Tabs.Advanced:AddLeftGroupbox("Advanced Settings")
+-- ✅ Advanced Tab (Single Groupbox)
+local AdvancedGroup = Tabs.Advanced:AddLeftGroupbox("Advanced Controls")
 
-AdvancedGroup1:AddButton("Force Refresh", {
+AdvancedGroup:AddButton("Force Refresh", {
     Text = "Full System Refresh",
-    Func = function()
-        fullRefresh()
-    end,
-    DoubleClick = false,
+    Func = fullRefresh,
     Tooltip = "Force refresh all bot systems"
 })
 
-AdvancedGroup1:AddToggle("DebugMode", {
+AdvancedGroup:AddToggle("DebugMode", {
     Text = "Enable Debug Mode",
     Default = false,
-    Tooltip = "Show debug information in console",
-    Callback = function(Value)
-        Library:Notify(Value and "Debug mode enabled" or "Debug mode disabled", 3)
+    Tooltip = "Show debug information in console"
+})
+
+AdvancedGroup:AddDropdown("AnimationSelector", {
+    Values = { "Push Up", "Sit", "Dance", "Wave", "Cheer" },
+    Default = "Push Up",
+    Text = "Select Animation",
+    Tooltip = "Choose animation to play"
+})
+
+AdvancedGroup:AddButton("Play Animation", {
+    Text = "Play Selected",
+    Func = function()
+        local selectedAnim = Options.AnimationSelector.Value
+        local args = { "playAnimation", selectedAnim }
+        pcall(function()
+            ReplicatedStorage:WaitForChild("Connections")
+                :WaitForChild("dataProviders")
+                :WaitForChild("animationHandler")
+                :InvokeServer(unpack(args))
+        end)
+        Library:Notify("Playing: " .. selectedAnim, 3)
     end
 })
 
-local AdvancedGroup2 = Tabs.Advanced:AddRightGroupbox("Animation Control")
-
-AdvancedGroup2:AddButton("Stop All Animations", {
+AdvancedGroup:AddButton("Stop All", {
     Text = "Emergency Stop",
     Func = function()
         local args = { "stopAllAnimations" }
@@ -220,33 +234,6 @@ AdvancedGroup2:AddButton("Stop All Animations", {
     Tooltip = "Immediately stop all animations"
 })
 
-AdvancedGroup2:AddDropdown("AnimationSelector", {
-    Values = { "Push Up", "Sit", "Dance", "Wave", "Cheer" },
-    Default = "Push Up",
-    Text = "Select Animation",
-    Tooltip = "Choose animation to play",
-    Callback = function(Value)
-        Library:Notify("Selected: " .. Value, 2)
-    end
-})
-
-AdvancedGroup2:AddButton("Play Selected", {
-    Text = "Play Animation",
-    Func = function()
-        local selectedAnim = Options.AnimationSelector.Value
-        local args = { "playAnimation", selectedAnim }
-        pcall(function()
-            ReplicatedStorage:WaitForChild("Connections")
-                :WaitForChild("dataProviders")
-                :WaitForChild("animationHandler")
-                :InvokeServer(unpack(args))
-        end)
-        Library:Notify("Playing: " .. selectedAnim, 3)
-    end,
-    DoubleClick = false,
-    Tooltip = "Play the selected animation"
-})
-
 -- ✅ Fungsi bantu
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
@@ -258,15 +245,12 @@ local function fullRefresh()
     runStopCommand()
     task.wait(0.5)
     
-    -- Reset semua variabel
     currentFormasiTarget = nil
     followAllowed = false
     
-    -- Putuskan semua koneksi lama
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
     
-    -- Inisialisasi ulang sistem
     if toggleAktif then
         setupBotFollowSystem()
     end
@@ -289,10 +273,8 @@ function setupBotFollowSystem()
 
             if msg == "!stop" then
                 runStopCommand()
-
             elseif msg == "!refresh" then
                 fullRefresh()
-
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
@@ -308,14 +290,12 @@ function setupBotFollowSystem()
                 else
                     Library:Notify("❌ Gagal sync", 3)
                 end
-
             elseif msg == "!ikuti" then
                 runStopCommand()
                 followAllowed = true
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
                 Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
-
             elseif msg:match("^!ikuti ") then
                 runStopCommand()
                 local targetDisplayName = msg:sub(8)
@@ -336,7 +316,6 @@ function setupBotFollowSystem()
                 else
                     Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
                 end
-
             elseif msg == "!pushup" then
                 runStopCommand()
                 local args = {
@@ -354,7 +333,6 @@ function setupBotFollowSystem()
                 else
                     Library:Notify("❌ Gagal melakukan push up", 3)
                 end
-
             elseif msg:match("^!formasi[1234]") then
                 runStopCommand()
                 local formasiCmd, displayName = msg:match("^!(formasi[1234])%s*(.*)")
@@ -426,7 +404,6 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Target tidak ditemukan!", 3)
                     currentFormasiTarget = nil
                 end
-
             elseif msg == "!absen" then
                 runStopCommand()
                 local uid = tostring(localPlayer.UserId)
