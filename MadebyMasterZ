@@ -181,29 +181,35 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Advanced Tab (Single Groupbox)
-local AdvancedGroup = Tabs.Advanced:AddLeftGroupbox("Advanced Controls")
+-- ✅ Advanced Tab (Simplified - Single Groupbox)
+local AdvancedControls = Tabs.Advanced:AddLeftGroupbox("Advanced Controls")
 
-AdvancedGroup:AddButton("Force Refresh", {
+AdvancedControls:AddButton("Force Refresh", {
     Text = "Full System Refresh",
     Func = fullRefresh,
     Tooltip = "Force refresh all bot systems"
 })
 
-AdvancedGroup:AddToggle("DebugMode", {
+AdvancedControls:AddToggle("DebugMode", {
     Text = "Enable Debug Mode",
     Default = false,
-    Tooltip = "Show debug information in console"
+    Tooltip = "Show debug information in console",
+    Callback = function(Value)
+        Library:Notify(Value and "Debug mode enabled" or "Debug mode disabled", 3)
+    end
 })
 
-AdvancedGroup:AddDropdown("AnimationSelector", {
+AdvancedControls:AddDropdown("AnimationSelector", {
     Values = { "Push Up", "Sit", "Dance", "Wave", "Cheer" },
     Default = "Push Up",
     Text = "Select Animation",
-    Tooltip = "Choose animation to play"
+    Tooltip = "Choose animation to play",
+    Callback = function(Value)
+        Library:Notify("Selected: " .. Value, 2)
+    end
 })
 
-AdvancedGroup:AddButton("Play Animation", {
+AdvancedControls:AddButton("Play Animation", {
     Text = "Play Selected",
     Func = function()
         local selectedAnim = Options.AnimationSelector.Value
@@ -215,10 +221,11 @@ AdvancedGroup:AddButton("Play Animation", {
                 :InvokeServer(unpack(args))
         end)
         Library:Notify("Playing: " .. selectedAnim, 3)
-    end
+    end,
+    Tooltip = "Play the selected animation"
 })
 
-AdvancedGroup:AddButton("Stop All", {
+AdvancedControls:AddButton("Stop All", {
     Text = "Emergency Stop",
     Func = function()
         local args = { "stopAllAnimations" }
