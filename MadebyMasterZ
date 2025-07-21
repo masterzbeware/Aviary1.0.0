@@ -22,15 +22,16 @@ local Tabs = {
 
 -- ✅ Variabel Global
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 
 local clientName = ""
 local jarakIkut = 5
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
+local isSynced = false
 local currentFormasiTarget = nil
 
 local followConnection = nil
@@ -58,6 +59,7 @@ local function runStopCommand()
             :WaitForChild("animationHandler")
             :InvokeServer(unpack(args))
     end)
+    isSynced = false
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
 end
 
@@ -181,15 +183,13 @@ local function fullRefresh()
     runStopCommand()
     task.wait(0.5)
     
-    -- Reset semua variabel
     currentFormasiTarget = nil
     followAllowed = false
+    isSynced = false
     
-    -- Putuskan semua koneksi lama
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
     
-    -- Inisialisasi ulang sistem
     if toggleAktif then
         setupBotFollowSystem()
     end
@@ -227,26 +227,27 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
+                    isSynced = true
                     Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
                 else
                     Library:Notify("❌ Gagal sync", 3)
                 end
 
             elseif msg == "!ikuti" then
-                -- Command to follow main client
-                runStopCommand()
+                -- Modified !ikuti that doesn't stop sync
+                if not followAllowed then
+                    runStopCommand()
+                end
                 followAllowed = true
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
                 Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
 
             elseif msg:match("^!ikuti ") then
-                -- Command to follow specific display name
-                runStopCommand()
+                -- Modified !ikuti displayname that doesn't stop sync
                 local targetDisplayName = msg:sub(8)
                 local foundTarget = nil
                 
-                -- Case-insensitive search for player
                 for _, p in ipairs(Players:GetPlayers()) do
                     if p.DisplayName:lower() == targetDisplayName:lower() then
                         foundTarget = p
@@ -255,6 +256,9 @@ function setupBotFollowSystem()
                 end
                 
                 if foundTarget then
+                    if not followAllowed then
+                        runStopCommand()
+                    end
                     followAllowed = true
                     currentFormasiTarget = foundTarget
                     Options.TextboxDisplayName:SetValue(foundTarget.DisplayName)
