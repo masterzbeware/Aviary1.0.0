@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -24,7 +24,6 @@ local Tabs = {
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Workspace = game:GetService("Workspace")
 local localPlayer = Players.LocalPlayer
 
 local clientName = ""
@@ -33,6 +32,9 @@ local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
+local isInFormationMode = false
+local currentFormationData = nil
+local isDoingPushup = false
 
 local followConnection = nil
 local loopTask = nil
@@ -44,14 +46,20 @@ local client = nil
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
+    isInFormationMode = false
+    currentFormationData = nil
+    
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
+    
     Options.TextboxDisplayName:SetValue("")
     Options.TextboxFormasi1:SetValue("")
     Options.TextboxFormasi2:SetValue("")
     Options.TextboxFormasi3:SetValue("")
     Options.TextboxFormasi4:SetValue("")
+    
+    -- Stop any animations
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -60,14 +68,16 @@ local function runStopCommand()
             :InvokeServer(unpack(args))
     end)
     
-    -- Stop pushup animation if playing
-    local stopArgs = { "stopAnimation", "Push Up" }
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Connections")
-            :WaitForChild("dataProviders")
-            :WaitForChild("animationHandler")
-            :InvokeServer(unpack(stopArgs))
-    end)
+    if isDoingPushup then
+        local stopArgs = { "stopAnimation", "Push Up" }
+        pcall(function()
+            ReplicatedStorage:WaitForChild("Connections")
+                :WaitForChild("dataProviders")
+                :WaitForChild("animationHandler")
+                :InvokeServer(unpack(stopArgs))
+        end)
+        isDoingPushup = false
+    end
     
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
 end
@@ -195,6 +205,8 @@ local function fullRefresh()
     -- Reset semua variabel
     currentFormasiTarget = nil
     followAllowed = false
+    isInFormationMode = false
+    currentFormationData = nil
     
     -- Putuskan semua koneksi lama
     if followConnection then followConnection:Disconnect() end
@@ -206,6 +218,54 @@ local function fullRefresh()
     end
     
     Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
+end
+
+local function applyFormation(data)
+    if not data or not data.hrp or not data.formasiCmd or not humanoid or not myRootPart then return end
+    
+    local hrp = data.hrp
+    local uid = data.uid
+    local formasi
+    
+    if data.formasiCmd == "formasi1" then
+        formasi = {
+            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
+            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
+            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
+            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
+            ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
+        }
+    elseif data.formasiCmd == "formasi2" then
+        formasi = {
+            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
+            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+            ["8802991722"] = hrp.Position,
+        }
+    elseif data.formasiCmd == "formasi3" then
+        formasi = {
+            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
+            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
+            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
+            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
+            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
+        }
+    elseif data.formasiCmd == "formasi4" then
+        formasi = {
+            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
+            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 3,
+            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
+            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
+            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
+        }
+    end
+
+    local posisiTarget = formasi[uid]
+    if posisiTarget then
+        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+        humanoid:MoveTo(posisiTarget)
+    end
 end
 
 -- ✅ Sistem Follow & Formasi
@@ -227,42 +287,10 @@ function setupBotFollowSystem()
             elseif msg == "!refresh" then
                 fullRefresh()
 
-elseif msg == "!openvip" then
-    Library:Notify("Membuka semua pintu VIP...", 3)
-    local detectorsFolder = Workspace:FindFirstChild("Detectors")
-    
-    if detectorsFolder then
-        -- Menghapus pintu dari folder 'vipDoors'
-        local vipDoors = detectorsFolder:FindFirstChild("vipDoors")
-        local doorCount = 0
-        if vipDoors then
-            for _, door in ipairs(vipDoors:GetDescendants()) do
-                if door:IsA("BasePart") then
-                    door:Destroy()
-                    doorCount += 1
-                end
-            end
-        end
-
-        -- Menghapus semua part dari folder 'VIP'
-        local vipFolder = detectorsFolder:FindFirstChild("VIP")
-        local vipCount = 0
-        if vipFolder then
-            for _, obj in ipairs(vipFolder:GetDescendants()) do
-                if obj:IsA("BasePart") then
-                    obj:Destroy()
-                    vipCount += 1
-                end
-            end
-        end
-
-        Library:Notify(string.format("✅ %d pintu VIP & %d part VIP dihancurkan", doorCount, vipCount), 4)
-    else
-        Library:Notify("❌ Folder Detectors tidak ditemukan", 3)
-    end
-
             elseif msg == "!gabung" then
                 followAllowed = false
+                isInFormationMode = false
+                currentFormationData = nil
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
@@ -278,20 +306,26 @@ elseif msg == "!openvip" then
                 end
 
             elseif msg == "!ikuti" then
-                -- Command to follow main client
-                runStopCommand()
-                followAllowed = true
-                currentFormasiTarget = client
-                Options.TextboxDisplayName:SetValue("")
-                Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
+                if isInFormationMode and currentFormationData then
+                    -- Follow with maintained formation
+                    followAllowed = true
+                    currentFormasiTarget = currentFormationData.target
+                    Options.TextboxDisplayName:SetValue("")
+                    Library:Notify("Bot mengikuti dengan mempertahankan formasi", 3)
+                else
+                    -- Normal follow
+                    runStopCommand()
+                    followAllowed = true
+                    currentFormasiTarget = client
+                    Options.TextboxDisplayName:SetValue("")
+                    Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
+                end
 
             elseif msg:match("^!ikuti ") then
-                -- Command to follow specific display name
                 runStopCommand()
                 local targetDisplayName = msg:sub(8)
                 local foundTarget = nil
                 
-                -- Case-insensitive search for player
                 for _, p in ipairs(Players:GetPlayers()) do
                     if p.DisplayName:lower() == targetDisplayName:lower() then
                         foundTarget = p
@@ -309,8 +343,8 @@ elseif msg == "!openvip" then
                 end
 
             elseif msg == "!pushup" then
-                -- Command to perform push up animation
                 runStopCommand()
+                isDoingPushup = true
                 local args = {
                     "playAnimation",
                     "Push Up"
@@ -325,6 +359,7 @@ elseif msg == "!openvip" then
                     Library:Notify("✅ Bot melakukan push up", 3)
                 else
                     Library:Notify("❌ Gagal melakukan push up", 3)
+                    isDoingPushup = false
                 end
 
             elseif msg:match("^!formasi[1234]") then
@@ -335,7 +370,7 @@ elseif msg == "!openvip" then
                 local target = nil
                 if displayName ~= "" then
                     for _, p in ipairs(Players:GetPlayers()) do
-                        if p.DisplayName:lower() == displayName then
+                        if p.DisplayName:lower() == displayName:lower() then
                             target = p
                             currentFormasiTarget = p
                             break
@@ -349,54 +384,32 @@ elseif msg == "!openvip" then
                 if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = target.Character.HumanoidRootPart
                     local uid = tostring(localPlayer.UserId)
-                    local formasi = {}
-
+                    
+                    currentFormationData = {
+                        target = target,
+                        hrp = hrp,
+                        formasiCmd = formasiCmd,
+                        uid = uid
+                    }
+                    
+                    isInFormationMode = true
+                    
                     if formasiCmd == "formasi1" then
                         Options.TextboxFormasi1:SetValue(target.DisplayName)
-                        formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                            ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
-                        }
                     elseif formasiCmd == "formasi2" then
                         Options.TextboxFormasi2:SetValue(target.DisplayName)
-                        formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                            ["8802991722"] = hrp.Position,
-                        }
                     elseif formasiCmd == "formasi3" then
                         Options.TextboxFormasi3:SetValue(target.DisplayName)
-                        formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
-                            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
-                            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-                            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
-                        }
                     elseif formasiCmd == "formasi4" then
                         Options.TextboxFormasi4:SetValue(target.DisplayName)
-                        formasi = {
-                            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
-                            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 3,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
-                            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
-                        }
                     end
-
-                    local posisiTarget = formasi[uid]
-                    if posisiTarget then
-                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                        humanoid:MoveTo(posisiTarget)
-                    end
+                    
+                    applyFormation(currentFormationData)
                 else
                     Library:Notify("❌ Target tidak ditemukan!", 3)
                     currentFormasiTarget = nil
+                    isInFormationMode = false
+                    currentFormationData = nil
                 end
 
             elseif msg == "!absen" then
@@ -435,9 +448,18 @@ elseif msg == "!openvip" then
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
-        if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
+        if not (humanoid and myRootPart) then return end
+        
+        if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP then
+            if not targetHRP then return end
+            
+            if isInFormationMode and currentFormationData then
+                -- Update formation position while following
+                currentFormationData.hrp = targetHRP
+                applyFormation(currentFormationData)
+            else
+                -- Normal follow behavior
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
