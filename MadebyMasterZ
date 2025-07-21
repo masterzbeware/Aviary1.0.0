@@ -24,6 +24,7 @@ local Tabs = {
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 local localPlayer = Players.LocalPlayer
 
 local clientName = ""
@@ -225,6 +226,28 @@ function setupBotFollowSystem()
 
             elseif msg == "!refresh" then
                 fullRefresh()
+
+            elseif msg == "!openvip" then
+                -- Command to open all VIP doors
+                Library:Notify("Membuka semua pintu VIP...", 3)
+                local vipDoors = Workspace:FindFirstChild("Detectors")
+                if vipDoors then
+                    vipDoors = vipDoors:FindFirstChild("vipDoors")
+                    if vipDoors then
+                        local doorCount = 0
+                        for _, door in ipairs(vipDoors:GetDescendants()) do
+                            if door.Name == "vipDoor" and door:IsA("BasePart") then
+                                door:Destroy()
+                                doorCount = doorCount + 1
+                            end
+                        end
+                        Library:Notify(string.format("✅ %d pintu VIP telah dibuka", doorCount), 3)
+                    else
+                        Library:Notify("❌ Folder vipDoors tidak ditemukan", 3)
+                    end
+                else
+                    Library:Notify("❌ Folder Detectors tidak ditemukan", 3)
+                end
 
             elseif msg == "!gabung" then
                 followAllowed = false
