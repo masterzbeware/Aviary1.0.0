@@ -51,7 +51,6 @@ local function runStopCommand()
     Options.TextboxFormasi2:SetValue("")
     Options.TextboxFormasi3:SetValue("")
     Options.TextboxFormasi4:SetValue("")
-    Options.TextboxFormasi5:SetValue("")
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -144,15 +143,6 @@ GroupBox3:AddInput("TextboxFormasi4", {
     end,
 })
 
-GroupBox3:AddInput("TextboxFormasi5", {
-    Default = "",
-    Text = "Formasi 5 Target",
-    Placeholder = "Kosong",
-    Callback = function(Value)
-        print("Formasi 5 Target:", Value)
-    end,
-})
-
 -- ✅ UI RIGHT
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
@@ -226,15 +216,6 @@ function setupBotFollowSystem()
             elseif msg == "!refresh" then
                 fullRefresh()
 
-            elseif msg == "!aktif" then
-                if not toggleAktif then
-                    Toggles.AktifkanFollow:SetValue(true)
-                    Library:Notify("✅ Toggle Follow diaktifkan", 3)
-                else
-                    fullRefresh()
-                    Library:Notify("⚠️ Bot sudah aktif, melakukan refresh...", 3)
-                end
-
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
@@ -251,35 +232,40 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal sync", 3)
                 end
 
-            elseif msg:match("^!ikuti ") then
-                runStopCommand()
-                local targetDisplayName = msg:sub(8):lower()
-                local found = false
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p.DisplayName:lower() == targetDisplayName then
-                        client = p
-                        followAllowed = true
-                        currentFormasiTarget = p
-                        Library:Notify("Mengikuti: " .. p.DisplayName, 3)
-                        Options.TextboxDisplayName:SetValue(p.DisplayName)
-                        found = true
-                        break
-                    end
-                end
-                if not found then
-                    Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
-                end
-
             elseif msg == "!ikuti" then
-                if not followAllowed then runStopCommand() end
+                -- Command to follow main client
+                runStopCommand()
                 followAllowed = true
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
-                Library:Notify("Bot mengikuti client utama", 3)
+                Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
 
-            elseif msg:match("^!formasi[12345]") then
+            elseif msg:match("^!ikuti ") then
+                -- Command to follow specific display name
                 runStopCommand()
-                local formasiCmd, displayName = msg:match("^!(formasi[12345])%s*(.*)")
+                local targetDisplayName = msg:sub(8)
+                local foundTarget = nil
+                
+                -- Case-insensitive search for player
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p.DisplayName:lower() == targetDisplayName:lower() then
+                        foundTarget = p
+                        break
+                    end
+                end
+                
+                if foundTarget then
+                    followAllowed = true
+                    currentFormasiTarget = foundTarget
+                    Options.TextboxDisplayName:SetValue(foundTarget.DisplayName)
+                    Library:Notify("Mengikuti: " .. foundTarget.DisplayName, 3)
+                else
+                    Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
+                end
+
+            elseif msg:match("^!formasi[1234]") then
+                runStopCommand()
+                local formasiCmd, displayName = msg:match("^!(formasi[1234])%s*(.*)")
                 displayName = displayName and displayName:lower()
 
                 local target = nil
@@ -337,15 +323,6 @@ function setupBotFollowSystem()
                             ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
                             ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
                         }
-                    elseif formasiCmd == "formasi5" then
-                        Options.TextboxFormasi5:SetValue(target.DisplayName)
-                        formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 5 + hrp.CFrame.RightVector * 2,
-                            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 5 - hrp.CFrame.RightVector * 2,
-                            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 3,
-                            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 4,
-                        }
                     end
 
                     local posisiTarget = formasi[uid]
@@ -394,8 +371,8 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
-        if followAllowed and toggleAktif and client and client.Character and humanoid and myRootPart then
-            local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
+        if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
+            local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
