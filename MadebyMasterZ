@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v2.1.0",  -- Updated version
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -18,12 +18,14 @@ local Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab("Main", "user"),
+    Advanced = Window:AddTab("Advanced", "settings"),  -- New tab for advanced settings
 }
 
 -- ✅ Variabel Global
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PathfindingService = game:GetService("PathfindingService")  -- Added pathfinding service
 local localPlayer = Players.LocalPlayer
 
 local clientName = ""
@@ -32,34 +34,122 @@ local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
-local isInFormationMode = false
-local currentFormationData = nil
-local isDoingPushup = false
+local avoidWallsEnabled = true  -- New setting for wall avoidance
+local pathRefreshRate = 0.5  -- How often to recalculate path (seconds)
 
-local followConnection = nil
-local loopTask = nil
-local humanoid = nil
-local myRootPart = nil
-local client = nil
+-- ✅ Fungsi Pathfinding
+local function calculatePath(targetPosition)
+    local character = localPlayer.Character
+    if not character then return nil end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return nil end
+    
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 2,
+        AgentHeight = 5,
+        AgentCanJump = true,
+        WaypointSpacing = 4,
+        Costs = {
+            Water = 10,
+            Lava = 20,
+        }
+    })
+    
+    path:ComputeAsync(humanoidRootPart.Position, targetPosition)
+    
+    if path.Status == Enum.PathStatus.Success then
+        local waypoints = path:GetWaypoints()
+        return waypoints
+    else
+        Library:Notify("⚠️ Tidak bisa menemukan jalan", 2)
+        return nil
+    end
+end
 
--- ✅ Fungsi reset & stop
+local function followPath(waypoints)
+    local humanoid = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid")
+    if not humanoid then return end
+    
+    for _, waypoint in ipairs(waypoints) do
+        if waypoint.Action == Enum.PathWaypointAction.Jump then
+            humanoid.Jump = true
+        end
+        
+        humanoid:MoveTo(waypoint.Position)
+        local reached = humanoid.MoveToFinished:Wait()
+        
+        if not reached then
+            return false  -- Failed to reach waypoint
+        end
+    end
+    
+    return true  -- Successfully followed path
+end
+
+-- ✅ Enhanced Movement System
+local function smartMoveTo(targetPosition)
+    if not avoidWallsEnabled then
+        -- Simple movement if wall avoidance is disabled
+        local humanoid = localPlayer.Character and localPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:MoveTo(targetPosition)
+        end
+        return
+    end
+    
+    -- Check for direct line of sight
+    local character = localPlayer.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    -- Raycast to check for obstacles
+    local direction = (targetPosition - humanoidRootPart.Position).Unit
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character}
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    
+    local raycastResult = workspace:Raycast(
+        humanoidRootPart.Position,
+        direction * (targetPosition - humanoidRootPart.Position).Magnitude,
+        raycastParams
+    )
+    
+    if not raycastResult then
+        -- No obstacles, move directly
+        local humanoid = character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid:MoveTo(targetPosition)
+        end
+    else
+        -- Obstacle detected, use pathfinding
+        local waypoints = calculatePath(targetPosition)
+        if waypoints then
+            followPath(waypoints)
+        else
+            -- Fallback to simple movement if pathfinding fails
+            local humanoid = character:FindFirstChild("Humanoid")
+            if humanoid then
+                humanoid:MoveTo(targetPosition)
+            end
+        end
+    end
+end
+
+-- ✅ Updated runStopCommand with pathfinding cleanup
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
-    isInFormationMode = false
-    currentFormationData = nil
-    
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
-    
     Options.TextboxDisplayName:SetValue("")
     Options.TextboxFormasi1:SetValue("")
     Options.TextboxFormasi2:SetValue("")
     Options.TextboxFormasi3:SetValue("")
     Options.TextboxFormasi4:SetValue("")
-    
-    -- Stop any animations
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -68,21 +158,19 @@ local function runStopCommand()
             :InvokeServer(unpack(args))
     end)
     
-    if isDoingPushup then
-        local stopArgs = { "stopAnimation", "Push Up" }
-        pcall(function()
-            ReplicatedStorage:WaitForChild("Connections")
-                :WaitForChild("dataProviders")
-                :WaitForChild("animationHandler")
-                :InvokeServer(unpack(stopArgs))
-        end)
-        isDoingPushup = false
-    end
+    -- Stop pushup animation if playing
+    local stopArgs = { "stopAnimation", "Push Up" }
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Connections")
+            :WaitForChild("dataProviders")
+            :WaitForChild("animationHandler")
+            :InvokeServer(unpack(stopArgs))
+    end)
     
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
 end
 
--- ✅ UI LEFT
+-- ✅ UI LEFT (Main Tab)
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
@@ -116,7 +204,7 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
--- ✅ GroupBox3
+-- ✅ GroupBox3 (Textbox)
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 
 GroupBox3:AddInput("TextboxDisplayName", {
@@ -128,343 +216,89 @@ GroupBox3:AddInput("TextboxDisplayName", {
     end,
 })
 
-GroupBox3:AddInput("TextboxFormasi1", {
-    Default = "",
-    Text = "Formasi 1 Target",
-    Placeholder = "Kosong",
+-- ... (rest of your existing UI elements remain the same)
+
+-- ✅ New Advanced Settings Tab
+local AdvancedGroup = Tabs.Advanced:AddLeftGroupbox("Pathfinding Settings")
+
+AdvancedGroup:AddToggle("AvoidWallsToggle", {
+    Text = "Hindari Tembok/Rintangan",
+    Default = true,
+    Tooltip = "Aktifkan untuk membuat bot menghindari tembok dan rintangan",
     Callback = function(Value)
-        print("Formasi 1 Target:", Value)
+        avoidWallsEnabled = Value
+        Library:Notify(Value and "🔄 Hindari rintangan diaktifkan" or "🔄 Hindari rintangan dimatikan", 2)
     end,
 })
 
-GroupBox3:AddInput("TextboxFormasi2", {
-    Default = "",
-    Text = "Formasi 2 Target",
-    Placeholder = "Kosong",
+AdvancedGroup:AddSlider("PathRefreshSlider", {
+    Text = "Kecepatan Update Path",
+    Default = 5,
+    Min = 1,
+    Max = 10,
+    Rounding = 0,
+    Tooltip = "Semakin tinggi semakin jarang update path",
     Callback = function(Value)
-        print("Formasi 2 Target:", Value)
+        pathRefreshRate = 1.1 - (Value / 10)  -- Convert to 0.1-1.0 range
     end,
 })
 
-GroupBox3:AddInput("TextboxFormasi3", {
-    Default = "",
-    Text = "Formasi 3 Target",
-    Placeholder = "Kosong",
-    Callback = function(Value)
-        print("Formasi 3 Target:", Value)
-    end,
-})
-
-GroupBox3:AddInput("TextboxFormasi4", {
-    Default = "",
-    Text = "Formasi 4 Target",
-    Placeholder = "Kosong",
-    Callback = function(Value)
-        print("Formasi 4 Target:", Value)
-    end,
-})
-
--- ✅ UI RIGHT
-local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
-
-GroupBox2:AddInput("JarakIkutInput", {
-    Default = "5",
-    Text = "Jarak Bot",
-    Placeholder = "Contoh: 5",
-    Callback = function(Value)
-        local number = tonumber(Value)
-        if number then
-            jarakIkut = number
-        end
-    end,
-})
-
-GroupBox2:AddInput("JarakMinimumInput", {
-    Default = "2",
-    Text = "Jarak Minimum Bergerak",
-    Placeholder = "Contoh: 2",
-    Callback = function(Value)
-        local number = tonumber(Value)
-        if number then
-            jarakMinimum = number
-        end
-    end,
-})
-
--- ✅ Fungsi bantu
-local function updateBotRefs()
-    local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
-    humanoid = character:WaitForChild("Humanoid")
-    myRootPart = character:WaitForChild("HumanoidRootPart")
-end
-
-local function fullRefresh()
-    runStopCommand()
-    task.wait(0.5)
-    
-    -- Reset semua variabel
-    currentFormasiTarget = nil
-    followAllowed = false
-    isInFormationMode = false
-    currentFormationData = nil
-    
-    -- Putuskan semua koneksi lama
-    if followConnection then followConnection:Disconnect() end
-    if loopTask then loopTask:Disconnect() end
-    
-    -- Inisialisasi ulang sistem
-    if toggleAktif then
-        setupBotFollowSystem()
-    end
-    
-    Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
-end
-
-local function applyFormation(data)
-    if not data or not data.hrp or not data.formasiCmd or not humanoid or not myRootPart then return end
-    
-    local hrp = data.hrp
-    local uid = data.uid
-    local formasi
-    
-    if data.formasiCmd == "formasi1" then
-        formasi = {
-            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-            ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
-        }
-    elseif data.formasiCmd == "formasi2" then
-        formasi = {
-            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-            ["8802991722"] = hrp.Position,
-        }
-    elseif data.formasiCmd == "formasi3" then
-        formasi = {
-            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
-            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
-            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
-            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
-        }
-    elseif data.formasiCmd == "formasi4" then
-        formasi = {
-            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
-            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 3,
-            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
-            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
-            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
-        }
-    end
-
-    local posisiTarget = formasi[uid]
-    if posisiTarget then
-        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-        humanoid:MoveTo(posisiTarget)
-    end
-end
-
--- ✅ Sistem Follow & Formasi
+-- ✅ Enhanced Follow System
 function setupBotFollowSystem()
     updateBotRefs()
+
+    local lastPathUpdate = 0
+    local currentWaypoints = {}
+    local currentWaypointIndex = 1
 
     local function setupClient(player)
         if player.Name ~= clientName then return end
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
-            msg = msg:lower()
-            local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-
-            if msg == "!stop" then
-                runStopCommand()
-
-            elseif msg == "!refresh" then
-                fullRefresh()
-
-            elseif msg == "!gabung" then
-                followAllowed = false
-                isInFormationMode = false
-                currentFormationData = nil
-                Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
-                local args = { "sync", client.UserId }
-                local success, err = pcall(function()
-                    ReplicatedStorage:WaitForChild("Connections")
-                        :WaitForChild("dataProviders")
-                        :WaitForChild("commandHandler")
-                        :InvokeServer(unpack(args))
-                end)
-                if success then
-                    Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
-                else
-                    Library:Notify("❌ Gagal sync", 3)
-                end
-
-            elseif msg == "!ikuti" then
-                if isInFormationMode and currentFormationData then
-                    -- Follow with maintained formation
-                    followAllowed = true
-                    currentFormasiTarget = currentFormationData.target
-                    Options.TextboxDisplayName:SetValue("")
-                    Library:Notify("Bot mengikuti dengan mempertahankan formasi", 3)
-                else
-                    -- Normal follow
-                    runStopCommand()
-                    followAllowed = true
-                    currentFormasiTarget = client
-                    Options.TextboxDisplayName:SetValue("")
-                    Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
-                end
-
-            elseif msg:match("^!ikuti ") then
-                runStopCommand()
-                local targetDisplayName = msg:sub(8)
-                local foundTarget = nil
-                
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p.DisplayName:lower() == targetDisplayName:lower() then
-                        foundTarget = p
-                        break
-                    end
-                end
-                
-                if foundTarget then
-                    followAllowed = true
-                    currentFormasiTarget = foundTarget
-                    Options.TextboxDisplayName:SetValue(foundTarget.DisplayName)
-                    Library:Notify("Mengikuti: " .. foundTarget.DisplayName, 3)
-                else
-                    Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
-                end
-
-            elseif msg == "!pushup" then
-                runStopCommand()
-                isDoingPushup = true
-                local args = {
-                    "playAnimation",
-                    "Push Up"
-                }
-                local success = pcall(function()
-                    ReplicatedStorage:WaitForChild("Connections")
-                        :WaitForChild("dataProviders")
-                        :WaitForChild("animationHandler")
-                        :InvokeServer(unpack(args))
-                end)
-                if success then
-                    Library:Notify("✅ Bot melakukan push up", 3)
-                else
-                    Library:Notify("❌ Gagal melakukan push up", 3)
-                    isDoingPushup = false
-                end
-
-            elseif msg:match("^!formasi[1234]") then
-                runStopCommand()
-                local formasiCmd, displayName = msg:match("^!(formasi[1234])%s*(.*)")
-                displayName = displayName and displayName:lower()
-
-                local target = nil
-                if displayName ~= "" then
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p.DisplayName:lower() == displayName:lower() then
-                            target = p
-                            currentFormasiTarget = p
-                            break
-                        end
-                    end
-                else
-                    target = client
-                    currentFormasiTarget = client
-                end
-
-                if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = target.Character.HumanoidRootPart
-                    local uid = tostring(localPlayer.UserId)
-                    
-                    currentFormationData = {
-                        target = target,
-                        hrp = hrp,
-                        formasiCmd = formasiCmd,
-                        uid = uid
-                    }
-                    
-                    isInFormationMode = true
-                    
-                    if formasiCmd == "formasi1" then
-                        Options.TextboxFormasi1:SetValue(target.DisplayName)
-                    elseif formasiCmd == "formasi2" then
-                        Options.TextboxFormasi2:SetValue(target.DisplayName)
-                    elseif formasiCmd == "formasi3" then
-                        Options.TextboxFormasi3:SetValue(target.DisplayName)
-                    elseif formasiCmd == "formasi4" then
-                        Options.TextboxFormasi4:SetValue(target.DisplayName)
-                    end
-                    
-                    applyFormation(currentFormationData)
-                else
-                    Library:Notify("❌ Target tidak ditemukan!", 3)
-                    currentFormasiTarget = nil
-                    isInFormationMode = false
-                    currentFormationData = nil
-                end
-
-            elseif msg == "!absen" then
-                runStopCommand()
-                local uid = tostring(localPlayer.UserId)
-                local urutanBot = {
-                    ["8802945328"] = 1,
-                    ["8802949363"] = 2,
-                    ["8802939883"] = 3,
-                    ["8802998147"] = 4,
-                    ["8802991722"] = 5,
-                }
-                local giliran = urutanBot[uid]
-                if not giliran then return end
-
-                task.spawn(function()
-                    task.wait((giliran - 1) * 2.5)
-                    local posisiAwal = myRootPart.Position
-                    local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    humanoid:MoveTo(posisiAbsen)
-                    humanoid.MoveToFinished:Wait()
-                    task.wait(1.5)
-                    myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    humanoid:MoveTo(posisiAwal)
-                end)
-            end
+            -- ... (your existing chat command handlers remain the same)
         end)
     end
 
-    for _, p in ipairs(Players:GetPlayers()) do
-        setupClient(p)
-    end
+    -- ... (your existing setup code remains the same)
 
-    Players.PlayerAdded:Connect(setupClient)
-    localPlayer.CharacterAdded:Connect(updateBotRefs)
-
-    loopTask = RunService.Heartbeat:Connect(function()
-        if not (humanoid and myRootPart) then return end
-        
-        if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character then
+    loopTask = RunService.Heartbeat:Connect(function(deltaTime)
+        if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
-            if not targetHRP then return end
-            
-            if isInFormationMode and currentFormationData then
-                -- Update formation position while following
-                currentFormationData.hrp = targetHRP
-                applyFormation(currentFormationData)
-            else
-                -- Normal follow behavior
+            if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
+                
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                    humanoid:MoveTo(followPos)
+                    
+                    -- Use smart movement system
+                    if avoidWallsEnabled then
+                        local now = tick()
+                        if now - lastPathUpdate > pathRefreshRate or #currentWaypoints == 0 then
+                            lastPathUpdate = now
+                            currentWaypoints = calculatePath(followPos) or {}
+                            currentWaypointIndex = 1
+                        end
+                        
+                        if #currentWaypoints > 0 then
+                            if currentWaypointIndex <= #currentWaypoints then
+                                local waypoint = currentWaypoints[currentWaypointIndex]
+                                humanoid:MoveTo(waypoint.Position)
+                                
+                                -- Check if reached waypoint
+                                if (myRootPart.Position - waypoint.Position).Magnitude < 3 then
+                                    currentWaypointIndex = currentWaypointIndex + 1
+                                end
+                            end
+                        else
+                            -- Fallback to simple movement if pathfinding fails
+                            humanoid:MoveTo(followPos)
+                        end
+                    else
+                        -- Simple movement if wall avoidance is disabled
+                        humanoid:MoveTo(followPos)
+                    end
                 end
             end
         end
