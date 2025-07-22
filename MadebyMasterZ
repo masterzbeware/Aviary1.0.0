@@ -32,7 +32,6 @@ local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
-local inFormationMode = false
 
 local followConnection = nil
 local loopTask = nil
@@ -40,11 +39,23 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
+-- ✅ Improved Pathfinding Variables
+local pathfindingService = game:GetService("PathfindingService")
+local path = pathfindingService:CreatePath({
+    AgentRadius = 2,
+    AgentHeight = 5,
+    AgentCanJump = true,
+    WaypointSpacing = 4,
+    Costs = {
+        Water = 10,
+        Lava = 20
+    }
+})
+
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
-    inFormationMode = false
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
@@ -71,6 +82,48 @@ local function runStopCommand()
     end)
     
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
+end
+
+-- ✅ Improved Pathfinding Function
+local function smartMoveTo(targetPosition)
+    if not humanoid or not myRootPart then return end
+    
+    -- Calculate path
+    local success, errorMessage = pcall(function()
+        path:ComputeAsync(myRootPart.Position, targetPosition)
+    end)
+    
+    if success and path.Status == Enum.PathStatus.Success then
+        local waypoints = path:GetWaypoints()
+        
+        -- Skip first waypoint if it's too close
+        local startIndex = 1
+        if #waypoints > 1 and (waypoints[1].Position - myRootPart.Position).Magnitude < 2 then
+            startIndex = 2
+        end
+        
+        -- Follow each waypoint
+        for i = startIndex, #waypoints do
+            local waypoint = waypoints[i]
+            
+            -- Face the target while moving
+            myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetPosition)
+            
+            if waypoint.Action == Enum.PathWaypointAction.Jump then
+                humanoid.Jump = true
+            end
+            
+            humanoid:MoveTo(waypoint.Position)
+            local reached = humanoid.MoveToFinished:Wait()
+            
+            if not reached then
+                break -- Interrupted or stuck
+            end
+        end
+    else
+        -- Fallback to simple movement if pathfinding fails
+        humanoid:MoveTo(targetPosition)
+    end
 end
 
 -- ✅ UI LEFT - Main Tab
@@ -195,7 +248,6 @@ local function fullRefresh()
     
     currentFormasiTarget = nil
     followAllowed = false
-    inFormationMode = false
     
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
@@ -207,7 +259,7 @@ local function fullRefresh()
     Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
 end
 
--- ✅ Sistem Follow & Formasi
+-- ✅ Sistem Follow & Formasi dengan Pathfinding yang Lebih Pintar
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -226,7 +278,6 @@ function setupBotFollowSystem()
                 fullRefresh()
             elseif msg == "!gabung" then
                 followAllowed = false
-                inFormationMode = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
@@ -242,7 +293,6 @@ function setupBotFollowSystem()
                 end
             elseif msg == "!ikuti" then
                 followAllowed = true
-                inFormationMode = false
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
                 Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
@@ -260,7 +310,6 @@ function setupBotFollowSystem()
                 
                 if foundTarget then
                     followAllowed = true
-                    inFormationMode = false
                     currentFormasiTarget = foundTarget
                     Options.TextboxDisplayName:SetValue(foundTarget.DisplayName)
                     Library:Notify("Mengikuti: " .. foundTarget.DisplayName, 3)
@@ -309,7 +358,6 @@ function setupBotFollowSystem()
                     local formasi = {}
 
                     if formasiCmd == "formasi1" then
-                        inFormationMode = true
                         Options.TextboxFormasi1:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
@@ -319,7 +367,6 @@ function setupBotFollowSystem()
                             ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
                         }
                     elseif formasiCmd == "formasi2" then
-                        inFormationMode = true
                         Options.TextboxFormasi2:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
@@ -329,7 +376,6 @@ function setupBotFollowSystem()
                             ["8802991722"] = hrp.Position,
                         }
                     elseif formasiCmd == "formasi3" then
-                        inFormationMode = true
                         Options.TextboxFormasi3:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
@@ -339,7 +385,6 @@ function setupBotFollowSystem()
                             ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
                         }
                     elseif formasiCmd == "formasi4" then
-                        inFormationMode = true
                         Options.TextboxFormasi4:SetValue(target.DisplayName)
                         formasi = {
                             ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
@@ -353,12 +398,11 @@ function setupBotFollowSystem()
                     local posisiTarget = formasi[uid]
                     if posisiTarget then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                        humanoid:MoveTo(posisiTarget)
+                        smartMoveTo(posisiTarget)
                     end
                 else
                     Library:Notify("❌ Target tidak ditemukan!", 3)
                     currentFormasiTarget = nil
-                    inFormationMode = false
                 end
             elseif msg == "!absen" then
                 runStopCommand()
@@ -378,11 +422,11 @@ function setupBotFollowSystem()
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    humanoid:MoveTo(posisiAbsen)
+                    smartMoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    humanoid:MoveTo(posisiAwal)
+                    smartMoveTo(posisiAwal)
                 end)
             end
         end)
@@ -396,65 +440,14 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
-        if toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
+        if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
-            if not targetHRP then return end
-            
-            if inFormationMode then
-                -- Maintain formation position relative to moving target
-                local uid = tostring(localPlayer.UserId)
-                local formasi = {}
-                local hrp = targetHRP
-                
-                if Options.TextboxFormasi1.Value == currentFormasiTarget.DisplayName then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
-                        ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
-                    }
-                elseif Options.TextboxFormasi2.Value == currentFormasiTarget.DisplayName then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                        ["8802991722"] = hrp.Position,
-                    }
-                elseif Options.TextboxFormasi3.Value == currentFormasiTarget.DisplayName then
-                    formasi = {
-                        ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
-                        ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
-                        ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
-                        ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-                        ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
-                    }
-                elseif Options.TextboxFormasi4.Value == currentFormasiTarget.DisplayName then
-                    formasi = {
-                        ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
-                        ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 3,
-                        ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
-                        ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
-                        ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
-                    }
-                end
-                
-                local posisiTarget = formasi[uid]
-                if posisiTarget then
-                    local dist = (myRootPart.Position - posisiTarget).Magnitude
-                    if dist > jarakMinimum then
-                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                        humanoid:MoveTo(posisiTarget)
-                    end
-                end
-            elseif followAllowed then
-                -- Regular follow mode
+            if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                    humanoid:MoveTo(followPos)
+                    smartMoveTo(followPos)
                 end
             end
         end
