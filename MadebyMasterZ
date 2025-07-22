@@ -18,13 +18,15 @@ local Window = Library:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab("Main", "user"),
-    Advanced = Window:AddTab("Advanced", "settings")
+    Advanced = Window:AddTab("Advanced", "settings"),
+    Pathfinding = Window:AddTab("Pathfinding", "map-pin") -- New tab for pathfinding settings
 }
 
 -- ✅ Variabel Global
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PathfindingService = game:GetService("PathfindingService")
 local localPlayer = Players.LocalPlayer
 
 local clientName = ""
@@ -40,10 +42,20 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
+-- New pathfinding variables
+local path = nil
+local lastPathUpdate = 0
+local pathUpdateInterval = 1 -- Update path every 1 second
+local pathfindingEnabled = true
+local avoidObstacles = true
+local pathfindingPrecision = 2 -- Higher values = more precise but more CPU intensive
+local maxPathfindDistance = 100 -- Max distance to attempt pathfinding
+
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
+    path = nil -- Clear current path
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
@@ -70,6 +82,110 @@ local function runStopCommand()
     end)
     
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
+end
+
+-- ✅ Pathfinding Functions
+local function computePath(targetPosition)
+    if not pathfindingEnabled or not humanoid or not myRootPart then 
+        return nil 
+    end
+    
+    -- Don't pathfind if too far away
+    if (targetPosition - myRootPart.Position).Magnitude > maxPathfindDistance then
+        return nil
+    end
+    
+    local newPath = PathfindingService:CreatePath({
+        AgentRadius = humanoid.HipHeight * 0.5,
+        AgentHeight = humanoid.HipHeight * 2,
+        AgentCanJump = humanoid.JumpPower > 0,
+        WaypointSpacing = pathfindingPrecision
+    })
+    
+    newPath:ComputeAsync(myRootPart.Position, targetPosition)
+    
+    if newPath.Status == Enum.PathStatus.Success then
+        return newPath
+    else
+        -- If pathfinding fails, try a simpler path
+        local simplePath = PathfindingService:CreatePath({
+            AgentRadius = humanoid.HipHeight,
+            AgentHeight = humanoid.HipHeight * 2.5,
+            AgentCanJump = false,
+            WaypointSpacing = pathfindingPrecision * 2
+        })
+        simplePath:ComputeAsync(myRootPart.Position, targetPosition)
+        
+        if simplePath.Status == Enum.PathStatus.Success then
+            return simplePath
+        end
+    end
+    
+    return nil
+end
+
+local function followPath(targetHRP)
+    if not path or not humanoid or not myRootPart then return end
+    
+    local waypoints = path:GetWaypoints()
+    if #waypoints == 0 then return end
+    
+    -- Skip waypoints that are too close
+    local nextWaypointIndex = 1
+    for i, waypoint in ipairs(waypoints) do
+        if (waypoint.Position - myRootPart.Position).Magnitude > jarakMinimum then
+            nextWaypointIndex = i
+            break
+        end
+    end
+    
+    local nextWaypoint = waypoints[nextWaypointIndex]
+    
+    -- Handle jumping if needed
+    if nextWaypoint.Action == Enum.PathWaypointAction.Jump then
+        humanoid.Jump = true
+    end
+    
+    -- Move to waypoint
+    humanoid:MoveTo(nextWaypoint.Position)
+    
+    -- Check if we reached the final waypoint
+    if nextWaypointIndex == #waypoints then
+        local finalDistance = (targetHRP.Position - myRootPart.Position).Magnitude
+        if finalDistance <= jarakIkut * 1.5 then
+            path = nil -- Clear path when close enough
+        end
+    end
+end
+
+local function smartMoveTo(targetPosition, targetHRP)
+    if not humanoid or not myRootPart then return end
+    
+    local distance = (targetPosition - myRootPart.Position).Magnitude
+    
+    -- If we're close enough, just face the target
+    if distance <= jarakMinimum * 1.5 then
+        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+        return
+    end
+    
+    -- Use pathfinding if enabled and conditions are met
+    if pathfindingEnabled and avoidObstacles and distance > jarakMinimum * 2 then
+        local currentTime = tick()
+        if not path or currentTime - lastPathUpdate > pathUpdateInterval then
+            path = computePath(targetPosition)
+            lastPathUpdate = currentTime
+        end
+        
+        if path then
+            followPath(targetHRP)
+            return
+        end
+    end
+    
+    -- Fallback to direct movement if pathfinding fails or is disabled
+    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+    humanoid:MoveTo(targetPosition)
 end
 
 -- ✅ UI LEFT - Main Tab
@@ -181,7 +297,65 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Advanced Tab (Simplified - Single Groupbox)
+-- ✅ Pathfinding Tab
+local PathfindingGroup = Tabs.Pathfinding:AddLeftGroupbox("Pathfinding Settings")
+
+PathfindingGroup:AddToggle("EnablePathfinding", {
+    Text = "Enable Smart Pathfinding",
+    Default = true,
+    Tooltip = "Enable advanced pathfinding to navigate around obstacles",
+    Callback = function(Value)
+        pathfindingEnabled = Value
+        Library:Notify(Value and "Smart pathfinding enabled" or "Smart pathfinding disabled", 3)
+    end
+})
+
+PathfindingGroup:AddToggle("AvoidObstacles", {
+    Text = "Avoid Obstacles",
+    Default = true,
+    Tooltip = "Try to navigate around obstacles when possible",
+    Callback = function(Value)
+        avoidObstacles = Value
+    end
+})
+
+PathfindingGroup:AddSlider("PathfindingPrecision", {
+    Text = "Pathfinding Precision",
+    Default = 2,
+    Min = 1,
+    Max = 5,
+    Rounding = 0,
+    Tooltip = "Higher = more precise but more CPU intensive",
+    Callback = function(Value)
+        pathfindingPrecision = Value
+    end
+})
+
+PathfindingGroup:AddSlider("PathUpdateRate", {
+    Text = "Path Update Rate (s)",
+    Default = 1,
+    Min = 0.5,
+    Max = 5,
+    Rounding = 1,
+    Tooltip = "How often to recalculate path",
+    Callback = function(Value)
+        pathUpdateInterval = Value
+    end
+})
+
+PathfindingGroup:AddSlider("MaxPathDistance", {
+    Text = "Max Path Distance",
+    Default = 100,
+    Min = 20,
+    Max = 500,
+    Rounding = 0,
+    Tooltip = "Maximum distance to attempt pathfinding",
+    Callback = function(Value)
+        maxPathfindDistance = Value
+    end
+})
+
+-- ✅ Advanced Tab
 local AdvancedControls = Tabs.Advanced:AddLeftGroupbox("Advanced Controls")
 
 AdvancedControls:AddButton("Force Refresh", {
@@ -254,6 +428,7 @@ local function fullRefresh()
     
     currentFormasiTarget = nil
     followAllowed = false
+    path = nil
     
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
@@ -404,7 +579,7 @@ function setupBotFollowSystem()
                     local posisiTarget = formasi[uid]
                     if posisiTarget then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                        humanoid:MoveTo(posisiTarget)
+                        smartMoveTo(posisiTarget, hrp)
                     end
                 else
                     Library:Notify("❌ Target tidak ditemukan!", 3)
@@ -428,11 +603,11 @@ function setupBotFollowSystem()
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    humanoid:MoveTo(posisiAbsen)
+                    smartMoveTo(posisiAbsen, hrp)
                     humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    humanoid:MoveTo(posisiAwal)
+                    smartMoveTo(posisiAwal, hrp)
                 end)
             end
         end)
@@ -451,9 +626,10 @@ function setupBotFollowSystem()
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
-                if dist > jarakMinimum then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                    humanoid:MoveTo(followPos)
+                
+                -- Only move if beyond minimum distance or if pathfinding is active
+                if dist > jarakMinimum or path then
+                    smartMoveTo(followPos, targetHRP)
                 end
             end
         end
