@@ -298,7 +298,6 @@ function setupBotFollowSystem()
                     Library:Notify("❌ Gagal sync", 3)
                 end
             elseif msg == "!ikuti" then
-                runStopCommand()
                 followAllowed = true
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
