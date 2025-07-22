@@ -204,18 +204,9 @@ local function fullRefresh()
     Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
 end
 
--- ✅ Sistem Follow & Formasi dengan pergerakan natural
+-- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
-
-    -- Variabel untuk pergerakan natural
-    local currentSpeed = 0
-    local maxSpeed = humanoid.WalkSpeed
-    local acceleration = 5
-    local deceleration = 8
-    local targetRotation = 0
-    local currentRotation = 0
-    local rotationSpeed = 2.5 -- Kecepatan rotasi (semakin kecil semakin halus)
 
     local function setupClient(player)
         if player.Name ~= clientName then return end
@@ -393,41 +384,16 @@ function setupBotFollowSystem()
     Players.PlayerAdded:Connect(setupClient)
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    loopTask = RunService.Heartbeat:Connect(function(deltaTime)
+    loopTask = RunService.Heartbeat:Connect(function()
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
-                
-                -- Hitung arah target
-                local direction = (followPos - myRootPart.Position).Unit
-                targetRotation = math.atan2(-direction.X, -direction.Z)
-                
-                -- Smooth rotation menggunakan Lerp
-                currentRotation = currentRotation + (targetRotation - currentRotation) * deltaTime * rotationSpeed
-                
-                -- Hitung target velocity dengan acceleration
-                local targetSpeed = dist > jarakMinimum and maxSpeed or 0
-                currentSpeed = currentSpeed + (targetSpeed - currentSpeed) * deltaTime * (targetSpeed > currentSpeed and acceleration or deceleration)
-                
-                -- Terapkan pergerakan jika perlu
                 if dist > jarakMinimum then
-                    -- Hitung arah gerakan dengan rotasi yang sudah di-smooth
-                    local moveDirection = Vector3.new(math.sin(currentRotation), 0, math.cos(currentRotation))
-                    
-                    -- Gerakkan karakter
-                    humanoid:Move(myRootPart.Position + moveDirection * currentSpeed * deltaTime)
-                    
-                    -- Atur orientasi karakter
-                    myRootPart.CFrame = CFrame.new(myRootPart.Position) * CFrame.Angles(0, currentRotation, 0)
-                else
-                    -- Berhenti secara gradual
-                    humanoid:MoveTo(myRootPart.Position)
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+                    humanoid:MoveTo(followPos)
                 end
-                
-                -- Adjust walk speed berdasarkan jarak untuk efek lebih natural
-                humanoid.WalkSpeed = math.clamp(dist * 0.5, 4, maxSpeed)
             end
         end
     end)
