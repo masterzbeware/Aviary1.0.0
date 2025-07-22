@@ -39,19 +39,6 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
--- ✅ Improved Pathfinding Variables
-local pathfindingService = game:GetService("PathfindingService")
-local path = pathfindingService:CreatePath({
-    AgentRadius = 2,
-    AgentHeight = 5,
-    AgentCanJump = true,
-    WaypointSpacing = 4,
-    Costs = {
-        Water = 10,
-        Lava = 20
-    }
-})
-
 -- ✅ Fungsi reset & stop
 local function runStopCommand()
     followAllowed = false
@@ -82,48 +69,6 @@ local function runStopCommand()
     end)
     
     Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
-end
-
--- ✅ Improved Pathfinding Function
-local function smartMoveTo(targetPosition)
-    if not humanoid or not myRootPart then return end
-    
-    -- Calculate path
-    local success, errorMessage = pcall(function()
-        path:ComputeAsync(myRootPart.Position, targetPosition)
-    end)
-    
-    if success and path.Status == Enum.PathStatus.Success then
-        local waypoints = path:GetWaypoints()
-        
-        -- Skip first waypoint if it's too close
-        local startIndex = 1
-        if #waypoints > 1 and (waypoints[1].Position - myRootPart.Position).Magnitude < 2 then
-            startIndex = 2
-        end
-        
-        -- Follow each waypoint
-        for i = startIndex, #waypoints do
-            local waypoint = waypoints[i]
-            
-            -- Face the target while moving
-            myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetPosition)
-            
-            if waypoint.Action == Enum.PathWaypointAction.Jump then
-                humanoid.Jump = true
-            end
-            
-            humanoid:MoveTo(waypoint.Position)
-            local reached = humanoid.MoveToFinished:Wait()
-            
-            if not reached then
-                break -- Interrupted or stuck
-            end
-        end
-    else
-        -- Fallback to simple movement if pathfinding fails
-        humanoid:MoveTo(targetPosition)
-    end
 end
 
 -- ✅ UI LEFT - Main Tab
@@ -259,7 +204,7 @@ local function fullRefresh()
     Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
 end
 
--- ✅ Sistem Follow & Formasi dengan Pathfinding yang Lebih Pintar
+-- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -398,7 +343,7 @@ function setupBotFollowSystem()
                     local posisiTarget = formasi[uid]
                     if posisiTarget then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                        smartMoveTo(posisiTarget)
+                        humanoid:MoveTo(posisiTarget)
                     end
                 else
                     Library:Notify("❌ Target tidak ditemukan!", 3)
@@ -422,11 +367,11 @@ function setupBotFollowSystem()
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    smartMoveTo(posisiAbsen)
+                    humanoid:MoveTo(posisiAbsen)
                     humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    smartMoveTo(posisiAwal)
+                    humanoid:MoveTo(posisiAwal)
                 end)
             end
         end)
@@ -447,7 +392,7 @@ function setupBotFollowSystem()
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                    smartMoveTo(followPos)
+                    humanoid:MoveTo(followPos)
                 end
             end
         end
