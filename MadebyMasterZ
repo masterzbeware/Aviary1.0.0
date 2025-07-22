@@ -204,9 +204,52 @@ local function fullRefresh()
     Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
 end
 
--- ✅ Sistem Follow & Formasi
+-- ✅ Sistem Follow & Formasi dengan Pergerakan Natural
 function setupBotFollowSystem()
     updateBotRefs()
+
+    -- Variabel untuk pergerakan natural
+    local lastMovementTime = 0
+    local movementCooldown = 0
+    local currentSpeed = 0
+    local maxSpeed = humanoid.WalkSpeed
+    local acceleration = 0.5
+    local isMoving = false
+
+    local function smoothMoveTo(position)
+        local distance = (myRootPart.Position - position).Magnitude
+        if distance < jarakMinimum then return end
+
+        -- Hitung arah
+        local direction = (position - myRootPart.Position).Unit
+        local lookAtPoint = position + direction * 10
+        
+        -- Atur kecepatan secara bertahap
+        currentSpeed = math.min(currentSpeed + acceleration, maxSpeed)
+        humanoid.WalkSpeed = currentSpeed
+        
+        -- Gerakan dengan sedikit variasi
+        local randomizedPosition = position + Vector3.new(
+            math.random(-0.3, 0.3),
+            0,
+            math.random(-0.3, 0.3)
+        )
+
+        -- Putar karakter secara natural
+        local currentCFrame = myRootPart.CFrame
+        local targetCFrame = CFrame.lookAt(myRootPart.Position, lookAtPoint)
+        myRootPart.CFrame = currentCFrame:Lerp(targetCFrame, 0.1)
+        
+        -- Gerakkan karakter
+        humanoid:MoveTo(randomizedPosition)
+        isMoving = true
+        
+        -- Berhenti secara bertahap ketika dekat
+        if distance < jarakIkut * 0.7 then
+            currentSpeed = math.max(currentSpeed - acceleration, 0)
+            humanoid.WalkSpeed = currentSpeed
+        end
+    end
 
     local function setupClient(player)
         if player.Name ~= clientName then return end
@@ -388,12 +431,29 @@ function setupBotFollowSystem()
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
-                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
-                local dist = (myRootPart.Position - followPos).Magnitude
-                if dist > jarakMinimum then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                    humanoid:MoveTo(followPos)
+                -- Hitung posisi follow dengan variasi dinamis
+                local baseOffset = targetHRP.CFrame.LookVector * jarakIkut
+                local dynamicOffset = Vector3.new(
+                    math.sin(tick() * 0.5) * 0.5,
+                    0,
+                    math.cos(tick() * 0.3) * 0.5
+                )
+                
+                local followPos = targetHRP.Position - baseOffset + dynamicOffset
+                
+                -- Jeda acak antara pergerakan
+                if tick() - lastMovementTime > movementCooldown then
+                    smoothMoveTo(followPos)
+                    lastMovementTime = tick()
+                    movementCooldown = math.random(5, 15) * 0.1
                 end
+            end
+        else
+            -- Reset kecepatan ketika tidak bergerak
+            if isMoving then
+                currentSpeed = math.max(currentSpeed - acceleration * 2, 0)
+                humanoid.WalkSpeed = currentSpeed
+                if currentSpeed <= 0 then isMoving = false end
             end
         end
     end)
