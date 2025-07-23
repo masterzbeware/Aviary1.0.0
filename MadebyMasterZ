@@ -105,6 +105,16 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
+GroupBox1:AddInput("DeveloperName", {
+    Default = "MasterZ",
+    Text = "Developer Name",
+    Placeholder = "Nama Developer",
+    Tooltip = "Nama pembuat script ini",
+    Callback = function(Value)
+        print("Developer:", Value)
+    end
+})
+
 -- ✅ GroupBox3 - Textboxes
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 
