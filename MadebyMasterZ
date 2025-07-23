@@ -221,6 +221,24 @@ function setupBotFollowSystem()
                 runStopCommand()
             elseif msg == "!refresh" then
                 fullRefresh()
+            elseif msg:match("^!jarakbot ") then
+                local newDistance = tonumber(msg:sub(11))
+                if newDistance and newDistance > 0 then
+                    jarakIkut = newDistance
+                    Options.JarakIkutInput:SetValue(tostring(newDistance))
+                    Library:Notify("✅ Jarak bot diatur ke: "..newDistance, 3)
+                else
+                    Library:Notify("❌ Masukkan angka yang valid (contoh: !jarakbot 5)", 3)
+                end
+            elseif msg:match("^!minjarak ") then
+                local newMinDistance = tonumber(msg:sub(10))
+                if newMinDistance and newMinDistance > 0 then
+                    jarakMinimum = newMinDistance
+                    Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
+                    Library:Notify("✅ Jarak minimum diatur ke: "..newMinDistance, 3)
+                else
+                    Library:Notify("❌ Masukkan angka yang valid (contoh: !minjarak 2)", 3)
+                end
             elseif msg == "!gabung" then
                 followAllowed = false
                 Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
