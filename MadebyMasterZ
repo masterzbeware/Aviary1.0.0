@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -235,35 +235,35 @@ function setupBotFollowSystem()
                 if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802945328" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Jarak bot1 diatur ke: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 1 diatur ke: "..newDistance, 3)
                 end
             elseif msg:match("^!aturjarak2 ") then
                 local newDistance = tonumber(msg:sub(12))
                 if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802949363" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Jarak bot2 diatur ke: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 2 diatur ke: "..newDistance, 3)
                 end
             elseif msg:match("^!aturjarak3 ") then
                 local newDistance = tonumber(msg:sub(12))
                 if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802939883" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Jarak bot3 diatur ke: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 3 diatur ke: "..newDistance, 3)
                 end
             elseif msg:match("^!aturjarak4 ") then
                 local newDistance = tonumber(msg:sub(12))
                 if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802998147" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Jarak bot4 diatur ke: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 4 diatur ke: "..newDistance, 3)
                 end
             elseif msg:match("^!aturjarak5 ") then
                 local newDistance = tonumber(msg:sub(12))
                 if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802991722" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Jarak bot5 diatur ke: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 5 diatur ke: "..newDistance, 3)
                 end
             elseif msg == "!gabung" then
                 followAllowed = false
