@@ -105,15 +105,6 @@ GroupBox1:AddInput("NamaClientInput", {
     end,
 })
 
-GroupBox1:AddInput("DeveloperName", {
-    Default = "bodyguardshoprblx",
-    Text = "Developer name",
-    Placeholder = "bodyguardshoprblx",
-    Callback = function(Value)
-        print("Developer:", Value)
-    end,
-})
-
 -- ✅ GroupBox3 - Textboxes
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 
@@ -230,14 +221,14 @@ function setupBotFollowSystem()
                 runStopCommand()
             elseif msg == "!refresh" then
                 fullRefresh()
-            elseif msg:match("^!aturjarak ") then
+            elseif msg:match("^!jarakbot ") then
                 local newDistance = tonumber(msg:sub(11))
                 if newDistance and newDistance > 0 then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
                     Library:Notify("✅ Jarak bot diatur ke: "..newDistance, 3)
                 else
-                    Library:Notify("❌ Masukkan angka yang valid (contoh: !aturjarak 5)", 3)
+                    Library:Notify("❌ Masukkan angka yang valid (contoh: !jarakbot 5)", 3)
                 end
             elseif msg:match("^!minjarak ") then
                 local newMinDistance = tonumber(msg:sub(10))
