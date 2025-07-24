@@ -230,7 +230,17 @@ function setupBotFollowSystem()
             -- Check if sender is developer
             local isDeveloper = client.Name == "Bodyguardshoprblx" or client.DisplayName == "Bodyguardshoprblx"
 
-            if msg == "!stop" then
+            -- New !clientname command
+            if msg:match("^!clientname ") then
+                local newClientName = msg:sub(12)
+                if newClientName and newClientName ~= "" then
+                    clientName = newClientName
+                    Options.NamaClientInput:SetValue(newClientName)
+                    Library:Notify("✅ Client name diubah ke: "..newClientName, 3)
+                else
+                    Library:Notify("❌ Masukkan nama yang valid (contoh: !clientname MasterZ_YT)", 3)
+                end
+            elseif msg == "!stop" then
                 runStopCommand()
             elseif msg == "!refresh" then
                 fullRefresh()
