@@ -32,16 +32,7 @@ local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
-local adminName = "bodyguardshoprblx"
-
--- Bot-specific distances
-local botDistances = {
-    ["8802945328"] = 5,  -- BotID1
-    ["8802949363"] = 5,  -- BotID2
-    ["8802939883"] = 5,  -- BotID3
-    ["8802998147"] = 5,  -- BotID4
-    ["8802991722"] = 5   -- BotID5
-}
+local adminName = "bodyguardshoprblx"  -- Default admin name
 
 local followConnection = nil
 local loopTask = nil
@@ -178,12 +169,13 @@ local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
-    Text = "Jarak Bot Default",
+    Text = "Jarak Bot",
     Placeholder = "Contoh: 5",
     Callback = function(Value)
         local number = tonumber(Value)
         if number then
             jarakIkut = number
+            Library:Notify("Jarak Bot diatur ke: "..number, 3)
         end
     end,
 })
@@ -196,6 +188,7 @@ GroupBox2:AddInput("JarakMinimumInput", {
         local number = tonumber(Value)
         if number then
             jarakMinimum = number
+            Library:Notify("Jarak Minimum diatur ke: "..number, 3)
         end
     end,
 })
@@ -236,33 +229,6 @@ function setupBotFollowSystem()
             msg = msg:lower()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
-
-            -- Handle admin commands
-            if player.DisplayName:lower() == adminName:lower() then
-                if msg:match("^!aturjarak[1-5]") then
-                    local botNum = tonumber(msg:match("^!aturjarak([1-5])"))
-                    local distance = tonumber(msg:match("^!aturjarak[1-5]%s+(%d+)"))
-                    
-                    if botNum and distance then
-                        local botIDs = {
-                            "8802945328", -- BotID1
-                            "8802949363", -- BotID2
-                            "8802939883", -- BotID3
-                            "8802998147", -- BotID4
-                            "8802991722"  -- BotID5
-                        }
-                        
-                        local botID = botIDs[botNum]
-                        if botID then
-                            botDistances[botID] = distance
-                            Library:Notify(string.format("✅ Jarak BotID%d diatur ke %d", botNum, distance), 3)
-                        end
-                    else
-                        Library:Notify("❌ Format salah. Gunakan: !aturjarak[1-5] [angka]", 3)
-                    end
-                    return
-                end
-            end
 
             if msg == "!stop" then
                 runStopCommand()
@@ -424,6 +390,38 @@ function setupBotFollowSystem()
         end)
     end
 
+    -- Admin command handler
+    Players.PlayerAdded:Connect(function(player)
+        if player.Name == adminName then
+            player.Chatted:Connect(function(msg)
+                if msg:lower():match("^!aturjarak") then
+                    local distance = tonumber(msg:match("%d+"))
+                    if distance then
+                        jarakIkut = distance
+                        Options.JarakIkutInput:SetValue(tostring(distance))
+                        Library:Notify("Admin mengatur jarak bot menjadi: "..distance, 5)
+                    end
+                end
+            end)
+        end
+    end)
+
+    -- Check for existing admin
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name == adminName then
+            player.Chatted:Connect(function(msg)
+                if msg:lower():match("^!aturjarak") then
+                    local distance = tonumber(msg:match("%d+"))
+                    if distance then
+                        jarakIkut = distance
+                        Options.JarakIkutInput:SetValue(tostring(distance))
+                        Library:Notify("Admin mengatur jarak bot menjadi: "..distance, 5)
+                    end
+                end
+            end)
+        end
+    end
+
     for _, p in ipairs(Players:GetPlayers()) do
         setupClient(p)
     end
@@ -435,10 +433,7 @@ function setupBotFollowSystem()
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
-                local uid = tostring(localPlayer.UserId)
-                local distance = botDistances[uid] or jarakIkut
-                
-                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * distance
+                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
