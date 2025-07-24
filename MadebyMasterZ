@@ -282,14 +282,20 @@ function setupBotFollowSystem()
                 Options.NamaClientInput:SetValue(newName)
                 
                 -- Find and setup new client
+                local foundNewClient = false
                 for _, p in ipairs(Players:GetPlayers()) do
                     if p.Name == newName then
                         setupClient(p)
+                        foundNewClient = true
                         break
                     end
                 end
                 
-                Library:Notify("Admin changed client name to: "..newName, 5)
+                if foundNewClient then
+                    Library:Notify("Admin changed client name to: "..newName, 5)
+                else
+                    Library:Notify("New client not found: "..newName.." (will listen when they join)", 5)
+                end
                 return true
             else
                 Library:Notify("❌ Client name cannot be empty", 3)
@@ -358,6 +364,7 @@ function setupBotFollowSystem()
             if followConnection and client and player.Name == client.Name then
                 followConnection:Disconnect()
                 followConnection = nil
+                client = nil
             end
             return 
         end
@@ -547,17 +554,21 @@ function setupBotFollowSystem()
                 handleAdminCommand(player, msg)
             end)
         end
-        setupClient(player)
+        if player.Name == clientName then
+            setupClient(player)
+        end
     end
 
-    -- Handle new admin joining
+    -- Handle new players joining
     Players.PlayerAdded:Connect(function(player)
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
                 handleAdminCommand(player, msg)
             end)
         end
-        setupClient(player)
+        if player.Name == clientName then
+            setupClient(player)
+        end
     end)
 
     localPlayer.CharacterAdded:Connect(updateBotRefs)
