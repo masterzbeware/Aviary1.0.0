@@ -190,7 +190,7 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Helper Functions
+-- ✅ Fungsi bantu
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
@@ -230,21 +230,7 @@ function setupBotFollowSystem()
             -- Check if sender is developer
             local isDeveloper = client.Name == "Bodyguardshoprblx" or client.DisplayName == "Bodyguardshoprblx"
 
-            -- !clientname command (developer only)
-            if msg:match("^!clientname ") then
-                if not isDeveloper then
-                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
-                    return
-                end
-                local newClientName = msg:sub(12)
-                if newClientName and newClientName ~= "" then
-                    clientName = newClientName
-                    Options.NamaClientInput:SetValue(newClientName)
-                    Library:Notify("✅ Client name diubah ke: "..newClientName, 3)
-                else
-                    Library:Notify("❌ Masukkan nama yang valid (contoh: !clientname MasterZ_YT)", 3)
-                end
-            elseif msg == "!stop" then
+            if msg == "!stop" then
                 runStopCommand()
             elseif msg == "!refresh" then
                 fullRefresh()
