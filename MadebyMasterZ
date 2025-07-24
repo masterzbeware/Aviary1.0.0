@@ -80,9 +80,8 @@ local function runStopCommand()
     Library:Notify("❌ Bot stopped & textboxes cleared", 3)
 end
 
--- ✅ UI LEFT - Main Tab
+-- ✅ UI Setup
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
-
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Enable Bot Follow",
     Default = false,
@@ -123,9 +122,8 @@ GroupBox1:AddInput("AdminName", {
     end,
 })
 
--- ✅ GroupBox3 - Textboxes
+-- Textboxes Group
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
-
 GroupBox3:AddInput("TextboxDisplayName", {
     Default = "",
     Text = "Target DisplayName",
@@ -171,9 +169,8 @@ GroupBox3:AddInput("TextboxFormasi4", {
     end,
 })
 
--- ✅ UI RIGHT - Distance Settings
+-- Distance Settings
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Distance Settings")
-
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
     Text = "Bot Distance",
@@ -237,7 +234,7 @@ function setupBotFollowSystem()
         
         -- Handle !clientname [username]
         if msg:match("^!clientname ") then
-            local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
+            local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
             if newName ~= "" then
                 clientName = newName
                 Options.NamaClientInput:SetValue(newName)
@@ -249,7 +246,7 @@ function setupBotFollowSystem()
             end
         end
         
-        -- Handle !aturjarak1 to !aturjarak5
+        -- Handle distance commands
         for i = 1, 5 do
             if msg:match("^!aturjarak"..i.."%s") then
                 local distance = tonumber(msg:match("%d+$"))
@@ -275,7 +272,6 @@ function setupBotFollowSystem()
                 end
             end
             
-            -- Handle !minjarak1 to !minjarak5
             if msg:match("^!minjarak"..i.."%s") then
                 local minDistance = tonumber(msg:match("%d+$"))
                 if minDistance and minDistance > 0 then
@@ -308,7 +304,7 @@ function setupBotFollowSystem()
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
-            -- Check if this is an admin command first
+            -- Check admin commands first
             if handleAdminCommand(player, msg) then return end
             
             msg = msg:lower()
@@ -384,7 +380,7 @@ function setupBotFollowSystem()
                 local target = nil
                 if displayName ~= "" then
                     for _, p in ipairs(Players:GetPlayers()) do
-                        if p.DisplayName:lower() == displayName then
+                        if p.DisplayName:lower() == displayName:lower() then
                             target = p
                             currentFormasiTarget = p
                             break
@@ -398,43 +394,45 @@ function setupBotFollowSystem()
                 if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = target.Character.HumanoidRootPart
                     local uid = tostring(localPlayer.UserId)
+                    local botDistance = botSettings[uid] and botSettings[uid].distance or jarakIkut
                     local formasi = {}
 
                     if formasiCmd == "formasi1" then
                         Options.TextboxFormasi1:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802945328"].distance,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * botSettings["8802949363"].distance,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * botSettings["8802939883"].distance,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * botSettings["8802998147"].distance,
-                            ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
+                            ["8802945328"] = hrp.Position + (hrp.CFrame.LookVector * botDistance),
+                            ["8802949363"] = hrp.Position + (hrp.CFrame.RightVector * botDistance),
+                            ["8802939883"] = hrp.Position + (hrp.CFrame.RightVector * -botDistance),
+                            ["8802998147"] = hrp.Position + (hrp.CFrame.LookVector * -botDistance),
+                            ["8802991722"] = hrp.Position + Vector3.new(0, 0, -botDistance)
                         }
                     elseif formasiCmd == "formasi2" then
                         Options.TextboxFormasi2:SetValue(target.DisplayName)
+                        local diagonalDist = botDistance * 0.7071
                         formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802945328"].distance + hrp.CFrame.RightVector * botSettings["8802945328"].distance,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802949363"].distance - hrp.CFrame.RightVector * botSettings["8802949363"].distance,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * botSettings["8802939883"].distance + hrp.CFrame.RightVector * botSettings["8802939883"].distance,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * botSettings["8802998147"].distance - hrp.CFrame.RightVector * botSettings["8802998147"].distance,
-                            ["8802991722"] = hrp.Position,
+                            ["8802945328"] = hrp.Position + (hrp.CFrame.LookVector * diagonalDist) + (hrp.CFrame.RightVector * diagonalDist),
+                            ["8802949363"] = hrp.Position + (hrp.CFrame.LookVector * diagonalDist) + (hrp.CFrame.RightVector * -diagonalDist),
+                            ["8802939883"] = hrp.Position + (hrp.CFrame.LookVector * -diagonalDist) + (hrp.CFrame.RightVector * diagonalDist),
+                            ["8802998147"] = hrp.Position + (hrp.CFrame.LookVector * -diagonalDist) + (hrp.CFrame.RightVector * -diagonalDist),
+                            ["8802991722"] = hrp.Position
                         }
                     elseif formasiCmd == "formasi3" then
                         Options.TextboxFormasi3:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802945328"].distance - hrp.CFrame.RightVector * (botSettings["8802945328"].distance + 1),
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802949363"].distance - hrp.CFrame.RightVector * (botSettings["8802949363"].distance - 3),
-                            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802939883"].distance + hrp.CFrame.RightVector * (botSettings["8802939883"].distance - 3),
-                            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * botSettings["8802998147"].distance + hrp.CFrame.RightVector * (botSettings["8802998147"].distance + 1),
-                            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * (botSettings["8802991722"].distance + 1),
+                            ["8802945328"] = hrp.Position + (hrp.CFrame.LookVector * botDistance) + (hrp.CFrame.RightVector * -botDistance*1.5),
+                            ["8802949363"] = hrp.Position + (hrp.CFrame.LookVector * botDistance) + (hrp.CFrame.RightVector * -botDistance*0.5),
+                            ["8802939883"] = hrp.Position + (hrp.CFrame.LookVector * botDistance) + (hrp.CFrame.RightVector * botDistance*0.5),
+                            ["8802998147"] = hrp.Position + (hrp.CFrame.LookVector * botDistance) + (hrp.CFrame.RightVector * botDistance*1.5),
+                            ["8802991722"] = hrp.Position + (hrp.CFrame.LookVector * botDistance*1.2)
                         }
                     elseif formasiCmd == "formasi4" then
                         Options.TextboxFormasi4:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * (botSettings["8802945328"].distance - 2) + hrp.CFrame.RightVector * (botSettings["8802945328"].distance + 1),
-                            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * (botSettings["8802949363"].distance - 2) + hrp.CFrame.RightVector * (botSettings["8802949363"].distance - 2),
-                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * (botSettings["8802939883"].distance - 2),
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * (botSettings["8802998147"].distance - 2) - hrp.CFrame.RightVector * (botSettings["8802998147"].distance - 2),
-                            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * (botSettings["8802991722"].distance - 2) - hrp.CFrame.RightVector * (botSettings["8802991722"].distance + 1),
+                            ["8802945328"] = hrp.Position + (hrp.CFrame.LookVector * -botDistance*0.75) + (hrp.CFrame.RightVector * botDistance*1.5),
+                            ["8802949363"] = hrp.Position + (hrp.CFrame.LookVector * -botDistance*0.75) + (hrp.CFrame.RightVector * botDistance*0.75),
+                            ["8802939883"] = hrp.Position + (hrp.CFrame.LookVector * -botDistance*0.75),
+                            ["8802998147"] = hrp.Position + (hrp.CFrame.LookVector * -botDistance*0.75) + (hrp.CFrame.RightVector * -botDistance*0.75),
+                            ["8802991722"] = hrp.Position + (hrp.CFrame.LookVector * -botDistance*0.75) + (hrp.CFrame.RightVector * -botDistance*1.5)
                         }
                     end
 
@@ -475,7 +473,7 @@ function setupBotFollowSystem()
         end)
     end
 
-    -- Handle existing admin
+    -- Handle existing players
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
@@ -485,7 +483,7 @@ function setupBotFollowSystem()
         setupClient(player)
     end
 
-    -- Handle new admin joining
+    -- Handle new players joining
     Players.PlayerAdded:Connect(function(player)
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
