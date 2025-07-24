@@ -34,6 +34,7 @@ local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
 local adminName = "bodyguardshoprblx"
+local isBotActive = true -- New variable to track bot state
 
 -- Individual bot settings
 local botSettings = {
@@ -89,6 +90,12 @@ GroupBox1:AddToggle("AktifkanFollow", {
     Default = false,
     Tooltip = "Enable to accept !ikuti commands",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.AktifkanFollow:SetValue(false)
+            return 
+        end
+        
         toggleAktif = Value
         if Value then
             Library:Notify("Bot Follow Enabled", 3)
@@ -109,17 +116,13 @@ GroupBox1:AddInput("NamaClientInput", {
     Text = "Client Name",
     Placeholder = "Example: MasterZ_YT",
     Callback = function(Value)
-        -- Stop all previous commands when client name changes
-        runStopCommand()
-        if followConnection then followConnection:Disconnect() end
-        
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.NamaClientInput:SetValue("")
+            return 
+        end
         clientName = Value
         print("Client set to:", clientName)
-        
-        -- Reconnect the follow system if toggle is active
-        if toggleAktif then
-            setupBotFollowSystem()
-        end
     end,
 })
 
@@ -139,6 +142,11 @@ GroupBox1:AddInput("JarakFormasiInput", {
     Text = "Formation Distance",
     Placeholder = "Example: 5",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.JarakFormasiInput:SetValue("5")
+            return 
+        end
         local number = tonumber(Value)
         if number then
             jarakFormasi = number
@@ -155,6 +163,11 @@ GroupBox3:AddInput("TextboxDisplayName", {
     Text = "Target DisplayName",
     Placeholder = "Empty",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.TextboxDisplayName:SetValue("")
+            return 
+        end
         print("DisplayName target:", Value)
     end,
 })
@@ -164,6 +177,11 @@ GroupBox3:AddInput("TextboxFormasi1", {
     Text = "Formation 1 Target",
     Placeholder = "Empty",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.TextboxFormasi1:SetValue("")
+            return 
+        end
         print("Formation 1 Target:", Value)
     end,
 })
@@ -173,6 +191,11 @@ GroupBox3:AddInput("TextboxFormasi2", {
     Text = "Formation 2 Target",
     Placeholder = "Empty",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.TextboxFormasi2:SetValue("")
+            return 
+        end
         print("Formation 2 Target:", Value)
     end,
 })
@@ -182,6 +205,11 @@ GroupBox3:AddInput("TextboxFormasi3", {
     Text = "Formation 3 Target",
     Placeholder = "Empty",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.TextboxFormasi3:SetValue("")
+            return 
+        end
         print("Formation 3 Target:", Value)
     end,
 })
@@ -191,6 +219,11 @@ GroupBox3:AddInput("TextboxFormasi4", {
     Text = "Formation 4 Target",
     Placeholder = "Empty",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.TextboxFormasi4:SetValue("")
+            return 
+        end
         print("Formation 4 Target:", Value)
     end,
 })
@@ -203,6 +236,11 @@ GroupBox2:AddInput("JarakIkutInput", {
     Text = "Follow Distance",
     Placeholder = "Example: 5",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.JarakIkutInput:SetValue("5")
+            return 
+        end
         local number = tonumber(Value)
         if number then
             jarakIkut = number
@@ -216,6 +254,11 @@ GroupBox2:AddInput("JarakMinimumInput", {
     Text = "Minimum Move Distance",
     Placeholder = "Example: 2",
     Callback = function(Value)
+        if not isBotActive then 
+            Library:Notify("❌ Bot is inactive. Admin must set client name first.", 3)
+            Options.JarakMinimumInput:SetValue("2")
+            return 
+        end
         local number = tonumber(Value)
         if number then
             jarakMinimum = number
@@ -241,7 +284,7 @@ local function fullRefresh()
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
     
-    if toggleAktif then
+    if toggleAktif and isBotActive then
         setupBotFollowSystem()
     end
     
@@ -250,6 +293,8 @@ end
 
 -- ✅ Follow & Formation System
 function setupBotFollowSystem()
+    if not isBotActive then return end
+    
     updateBotRefs()
 
     -- Function to handle admin commands
@@ -263,18 +308,28 @@ function setupBotFollowSystem()
         if msg:match("^!clientname ") then
             local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
             if newName ~= "" then
-                -- Stop all previous commands when client name changes
+                -- Stop all bot functions
                 runStopCommand()
                 if followConnection then followConnection:Disconnect() end
+                if loopTask then loopTask:Disconnect() end
                 
+                -- Disable the bot
+                isBotActive = false
+                toggleAktif = false
+                Options.AktifkanFollow:SetValue(false)
+                
+                -- Set new client name
                 clientName = newName
                 Options.NamaClientInput:SetValue(newName)
-                Library:Notify("Admin changed client name to: "..newName, 5)
                 
-                -- Reconnect the follow system if toggle is active
-                if toggleAktif then
-                    setupBotFollowSystem()
-                end
+                -- Clear all inputs
+                Options.TextboxDisplayName:SetValue("")
+                Options.TextboxFormasi1:SetValue("")
+                Options.TextboxFormasi2:SetValue("")
+                Options.TextboxFormasi3:SetValue("")
+                Options.TextboxFormasi4:SetValue("")
+                
+                Library:Notify("Admin changed client name to: "..newName..". Bot is now inactive.", 5)
                 return true
             else
                 Library:Notify("❌ Client name cannot be empty", 3)
@@ -341,6 +396,19 @@ function setupBotFollowSystem()
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
+            -- Check if bot is active
+            if not isBotActive then
+                -- Only allow the new client to reactivate the bot
+                if msg:lower() == "!activate" then
+                    isBotActive = true
+                    Library:Notify("✅ Bot activated for client: "..player.Name, 5)
+                    Options.AktifkanFollow:SetValue(true)
+                    toggleAktif = true
+                    setupBotFollowSystem()
+                end
+                return
+            end
+            
             -- Check admin commands first
             if handleAdminCommand(player, msg) then return end
             
@@ -533,6 +601,8 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
+        if not isBotActive then return end
+        
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
