@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v5.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -49,6 +49,15 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
+
+-- ✅ Connection Cleanup Function
+local function cleanupConnections()
+    if followConnection then 
+        followConnection:Disconnect() 
+        followConnection = nil
+    end
+    client = nil
+end
 
 -- ✅ Reset & Stop Function
 local function runStopCommand()
@@ -254,9 +263,22 @@ function setupBotFollowSystem()
         if msg:match("^!clientname ") then
             local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
             if newName ~= "" then
+                -- Disconnect existing connections
+                cleanupConnections()
+                
+                -- Update client name and UI
                 clientName = newName
                 Options.NamaClientInput:SetValue(newName)
                 Library:Notify("Admin changed client name to: "..newName, 5)
+                
+                -- Reconnect to new client if they exist
+                for _, player in ipairs(Players:GetPlayers()) do
+                    if player.Name == newName then
+                        setupClient(player)
+                        break
+                    end
+                end
+                
                 return true
             else
                 Library:Notify("❌ Client name cannot be empty", 3)
@@ -319,6 +341,7 @@ function setupBotFollowSystem()
     end
 
     local function setupClient(player)
+        cleanupConnections()  -- Clean up old connections first
         if player.Name ~= clientName then return end
         client = player
 
