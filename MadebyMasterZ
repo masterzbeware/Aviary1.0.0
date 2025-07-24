@@ -20,7 +20,7 @@ local Tabs = {
     Main = Window:AddTab("Main", "user")
 }
 
--- ✅ Variabel Global
+-- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -49,7 +49,7 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
--- ✅ Fungsi reset & stop
+-- ✅ Reset & Stop Function
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
@@ -77,26 +77,25 @@ local function runStopCommand()
             :InvokeServer(unpack(stopArgs))
     end)
     
-    Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
+    Library:Notify("❌ Bot stopped & textboxes cleared", 3)
 end
 
 -- ✅ UI LEFT - Main Tab
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
-    Text = "Aktifkan Bot Follow",
+    Text = "Enable Bot Follow",
     Default = false,
-    Tooltip = "Nyalakan agar bot siap menerima perintah !ikuti",
+    Tooltip = "Enable to accept !ikuti commands",
     Callback = function(Value)
         toggleAktif = Value
-
         if Value then
-            Library:Notify("Bot Follow Diaktifkan", 3)
+            Library:Notify("Bot Follow Enabled", 3)
             if followConnection then followConnection:Disconnect() end
             if loopTask then loopTask:Disconnect() end
             setupBotFollowSystem()
         else
-            Library:Notify("Bot Follow Dimatikan", 3)
+            Library:Notify("Bot Follow Disabled", 3)
             runStopCommand()
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
@@ -106,11 +105,11 @@ GroupBox1:AddToggle("AktifkanFollow", {
 
 GroupBox1:AddInput("NamaClientInput", {
     Default = "",
-    Text = "Nama Client",
-    Placeholder = "Contoh: MasterZ_YT",
+    Text = "Client Name",
+    Placeholder = "Example: MasterZ_YT",
     Callback = function(Value)
         clientName = Value
-        print("Client diatur ke:", clientName)
+        print("Client set to:", clientName)
     end,
 })
 
@@ -120,7 +119,7 @@ GroupBox1:AddInput("AdminName", {
     Placeholder = "bodyguardshoprblx",
     Callback = function(Value)
         adminName = Value
-        print("Admin Name diatur ke:", adminName)
+        print("Admin Name set to:", adminName)
     end,
 })
 
@@ -130,7 +129,7 @@ local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 GroupBox3:AddInput("TextboxDisplayName", {
     Default = "",
     Text = "Target DisplayName",
-    Placeholder = "Kosong",
+    Placeholder = "Empty",
     Callback = function(Value)
         print("DisplayName target:", Value)
     end,
@@ -138,70 +137,70 @@ GroupBox3:AddInput("TextboxDisplayName", {
 
 GroupBox3:AddInput("TextboxFormasi1", {
     Default = "",
-    Text = "Formasi 1 Target",
-    Placeholder = "Kosong",
+    Text = "Formation 1 Target",
+    Placeholder = "Empty",
     Callback = function(Value)
-        print("Formasi 1 Target:", Value)
+        print("Formation 1 Target:", Value)
     end,
 })
 
 GroupBox3:AddInput("TextboxFormasi2", {
     Default = "",
-    Text = "Formasi 2 Target",
-    Placeholder = "Kosong",
+    Text = "Formation 2 Target",
+    Placeholder = "Empty",
     Callback = function(Value)
-        print("Formasi 2 Target:", Value)
+        print("Formation 2 Target:", Value)
     end,
 })
 
 GroupBox3:AddInput("TextboxFormasi3", {
     Default = "",
-    Text = "Formasi 3 Target",
-    Placeholder = "Kosong",
+    Text = "Formation 3 Target",
+    Placeholder = "Empty",
     Callback = function(Value)
-        print("Formasi 3 Target:", Value)
+        print("Formation 3 Target:", Value)
     end,
 })
 
 GroupBox3:AddInput("TextboxFormasi4", {
     Default = "",
-    Text = "Formasi 4 Target",
-    Placeholder = "Kosong",
+    Text = "Formation 4 Target",
+    Placeholder = "Empty",
     Callback = function(Value)
-        print("Formasi 4 Target:", Value)
+        print("Formation 4 Target:", Value)
     end,
 })
 
 -- ✅ UI RIGHT - Distance Settings
-local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
+local GroupBox2 = Tabs.Main:AddRightGroupbox("Distance Settings")
 
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
-    Text = "Jarak Bot Default",
-    Placeholder = "Contoh: 5",
+    Text = "Bot Distance",
+    Placeholder = "Example: 5",
     Callback = function(Value)
         local number = tonumber(Value)
         if number then
             jarakIkut = number
-            Library:Notify("Jarak Default diatur ke: "..number, 3)
+            Library:Notify("Default distance set to: "..number, 3)
         end
     end,
 })
 
 GroupBox2:AddInput("JarakMinimumInput", {
     Default = "2",
-    Text = "Jarak Minimum Bergerak",
-    Placeholder = "Contoh: 2",
+    Text = "Minimum Move Distance",
+    Placeholder = "Example: 2",
     Callback = function(Value)
         local number = tonumber(Value)
         if number then
             jarakMinimum = number
-            Library:Notify("Jarak Minimum diatur ke: "..number, 3)
+            Library:Notify("Minimum distance set to: "..number, 3)
         end
     end,
 })
 
--- ✅ Fungsi bantu
+-- ✅ Helper Functions
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
@@ -222,21 +221,35 @@ local function fullRefresh()
         setupBotFollowSystem()
     end
     
-    Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
+    Library:Notify("✅ System refreshed", 3)
 end
 
--- ✅ Sistem Follow & Formasi
+-- ✅ Follow & Formation System
 function setupBotFollowSystem()
     updateBotRefs()
 
-    -- Fungsi untuk handle command admin
+    -- Function to handle admin commands
     local function handleAdminCommand(player, msg)
         if player.Name ~= adminName then return false end
         
         msg = msg:lower()
         local currentBotID = tostring(localPlayer.UserId)
         
-        -- Handle !aturjarak1 sampai !aturjarak5
+        -- Handle !clientname [username]
+        if msg:match("^!clientname ") then
+            local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1") -- Trim whitespace
+            if newName ~= "" then
+                clientName = newName
+                Options.NamaClientInput:SetValue(newName)
+                Library:Notify("Admin changed client name to: "..newName, 5)
+                return true
+            else
+                Library:Notify("❌ Client name cannot be empty", 3)
+                return true
+            end
+        end
+        
+        -- Handle !aturjarak1 to !aturjarak5
         for i = 1, 5 do
             if msg:match("^!aturjarak"..i.."%s") then
                 local distance = tonumber(msg:match("%d+$"))
@@ -249,21 +262,20 @@ function setupBotFollowSystem()
                     elseif i == 5 then botID = "8802991722" end
                     
                     botSettings[botID].distance = distance
-                    Library:Notify("Admin mengatur jarak BotID"..i.." ("..botID..") menjadi: "..distance, 5)
+                    Library:Notify("Admin set BotID"..i.." ("..botID..") distance to: "..distance, 5)
                     
-                    -- Update UI jika ini adalah bot yang sedang aktif
                     if currentBotID == botID then
                         jarakIkut = distance
                         Options.JarakIkutInput:SetValue(tostring(distance))
                     end
                     return true
                 else
-                    Library:Notify("❌ Jarak harus angka positif", 3)
+                    Library:Notify("❌ Distance must be positive number", 3)
                     return true
                 end
             end
             
-            -- Handle !minjarak1 sampai !minjarak5
+            -- Handle !minjarak1 to !minjarak5
             if msg:match("^!minjarak"..i.."%s") then
                 local minDistance = tonumber(msg:match("%d+$"))
                 if minDistance and minDistance > 0 then
@@ -275,16 +287,15 @@ function setupBotFollowSystem()
                     elseif i == 5 then botID = "8802991722" end
                     
                     botSettings[botID].minDistance = minDistance
-                    Library:Notify("Admin mengatur jarak minimum BotID"..i.." ("..botID..") menjadi: "..minDistance, 5)
+                    Library:Notify("Admin set BotID"..i.." ("..botID..") min distance to: "..minDistance, 5)
                     
-                    -- Update UI jika ini adalah bot yang sedang aktif
                     if currentBotID == botID then
                         jarakMinimum = minDistance
                         Options.JarakMinimumInput:SetValue(tostring(minDistance))
                     end
                     return true
                 else
-                    Library:Notify("❌ Jarak minimum harus angka positif", 3)
+                    Library:Notify("❌ Min distance must be positive number", 3)
                     return true
                 end
             end
@@ -297,7 +308,7 @@ function setupBotFollowSystem()
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
-            -- Cek dulu apakah ini command admin
+            -- Check if this is an admin command first
             if handleAdminCommand(player, msg) then return end
             
             msg = msg:lower()
@@ -310,7 +321,7 @@ function setupBotFollowSystem()
                 fullRefresh()
             elseif msg == "!gabung" then
                 followAllowed = false
-                Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
+                Library:Notify("!gabung command received. Syncing...", 4)
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
@@ -319,15 +330,15 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
-                    Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
+                    Library:Notify("✅ Bot joined client ID: " .. client.UserId, 3)
                 else
-                    Library:Notify("❌ Gagal sync", 3)
+                    Library:Notify("❌ Sync failed", 3)
                 end
             elseif msg == "!ikuti" then
                 followAllowed = true
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
-                Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
+                Library:Notify("Bot following main client: " .. client.DisplayName, 3)
             elseif msg:match("^!ikuti ") then
                 runStopCommand()
                 local targetDisplayName = msg:sub(8)
@@ -344,9 +355,9 @@ function setupBotFollowSystem()
                     followAllowed = true
                     currentFormasiTarget = foundTarget
                     Options.TextboxDisplayName:SetValue(foundTarget.DisplayName)
-                    Library:Notify("Mengikuti: " .. foundTarget.DisplayName, 3)
+                    Library:Notify("Following: " .. foundTarget.DisplayName, 3)
                 else
-                    Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
+                    Library:Notify("❌ Target not found: " .. targetDisplayName, 3)
                 end
             elseif msg == "!pushup" then
                 runStopCommand()
@@ -361,9 +372,9 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
-                    Library:Notify("✅ Bot melakukan push up", 3)
+                    Library:Notify("✅ Bot doing push up", 3)
                 else
-                    Library:Notify("❌ Gagal melakukan push up", 3)
+                    Library:Notify("❌ Failed to do push up", 3)
                 end
             elseif msg:match("^!formasi[1234]") then
                 runStopCommand()
@@ -433,7 +444,7 @@ function setupBotFollowSystem()
                         humanoid:MoveTo(posisiTarget)
                     end
                 else
-                    Library:Notify("❌ Target tidak ditemukan!", 3)
+                    Library:Notify("❌ Target not found!", 3)
                     currentFormasiTarget = nil
                 end
             elseif msg == "!absen" then
@@ -464,7 +475,7 @@ function setupBotFollowSystem()
         end)
     end
 
-    -- Handle untuk admin yang sudah ada
+    -- Handle existing admin
     for _, player in ipairs(Players:GetPlayers()) do
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
@@ -474,7 +485,7 @@ function setupBotFollowSystem()
         setupClient(player)
     end
 
-    -- Handle untuk admin yang baru join
+    -- Handle new admin joining
     Players.PlayerAdded:Connect(function(player)
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
