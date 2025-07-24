@@ -106,7 +106,7 @@ GroupBox1:AddInput("NamaClientInput", {
 })
 
 GroupBox1:AddInput("DeveloperName", {
-    Default = "Bodyguardshoprblx",
+    Default = "bodyguardshoprblx",
     Text = "Developer Name",
     Placeholder = "Nama Developer",
     Tooltip = "Nama pembuat script ini",
@@ -190,7 +190,7 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Fungsi bantu
+-- ✅ Helper Functions
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
@@ -227,10 +227,25 @@ function setupBotFollowSystem()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            -- Check if sender is developer
-            local isDeveloper = client.Name == "Bodyguardshoprblx" or client.DisplayName == "Bodyguardshoprblx"
+            -- Check if sender is developer (case insensitive)
+            local isDeveloper = string.lower(client.Name) == "bodyguardshoprblx" or 
+                              string.lower(client.DisplayName) == "bodyguardshoprblx"
 
-            if msg == "!stop" then
+            -- !clientname command (developer only)
+            if msg:match("^!clientname ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
+                local newClientName = msg:sub(12)
+                if newClientName and newClientName ~= "" then
+                    clientName = newClientName
+                    Options.NamaClientInput:SetValue(newClientName)
+                    Library:Notify("✅ Client name diubah ke: "..newClientName, 3)
+                else
+                    Library:Notify("❌ Masukkan nama yang valid (contoh: !clientname MasterZ_YT)", 3)
+                end
+            elseif msg == "!stop" then
                 runStopCommand()
             elseif msg == "!refresh" then
                 fullRefresh()
