@@ -180,6 +180,18 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
+-- ✅ NEW: Admin Control Groupbox
+local AdminControlGroup = Tabs.Main:AddRightGroupbox("Admin Control")
+
+AdminControlGroup:AddInput("AdminControlInput", {
+    Default = "bodyguardshoprblx",
+    Text = "Admin Key",
+    Placeholder = "Enter admin key",
+    Callback = function(Value)
+        print("Admin key set to:", Value)
+    end,
+})
+
 -- ✅ Fungsi bantu
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
