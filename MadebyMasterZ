@@ -32,6 +32,16 @@ local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
+local adminName = "bodyguardshoprblx"
+
+-- Jarak khusus untuk setiap bot
+local botDistances = {
+    ["8802945328"] = 5,  -- BotID1
+    ["8802949363"] = 5,  -- BotID2
+    ["8802939883"] = 5,  -- BotID3
+    ["8802998147"] = 5,  -- BotID4
+    ["8802991722"] = 5   -- BotID5
+}
 
 local followConnection = nil
 local loopTask = nil
@@ -110,7 +120,8 @@ GroupBox1:AddInput("AdminName", {
     Text = "Admin Name",
     Placeholder = "bodyguardshoprblx",
     Callback = function(Value)
-        print("Admin Name:", Value)
+        adminName = Value
+        print("Admin Name diatur ke:", adminName)
     end,
 })
 
@@ -213,6 +224,11 @@ local function fullRefresh()
     Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
 end
 
+-- Fungsi untuk mengecek apakah pengirim adalah admin
+local function isAdmin(player)
+    return player.Name == adminName or player.DisplayName:lower() == adminName:lower()
+end
+
 -- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
@@ -225,6 +241,41 @@ function setupBotFollowSystem()
             msg = msg:lower()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
+
+            -- Perintah khusus admin
+            if isAdmin(player) then
+                if msg:match("^!aturjarak1 ") then
+                    local distance = tonumber(msg:match("^!aturjarak1 (%d+)"))
+                    if distance then
+                        botDistances["8802945328"] = distance
+                        Library:Notify(string.format("✅ Jarak BotID1 diatur ke %d", distance), 3)
+                    end
+                elseif msg:match("^!aturjarak2 ") then
+                    local distance = tonumber(msg:match("^!aturjarak2 (%d+)"))
+                    if distance then
+                        botDistances["8802949363"] = distance
+                        Library:Notify(string.format("✅ Jarak BotID2 diatur ke %d", distance), 3)
+                    end
+                elseif msg:match("^!aturjarak3 ") then
+                    local distance = tonumber(msg:match("^!aturjarak3 (%d+)"))
+                    if distance then
+                        botDistances["8802939883"] = distance
+                        Library:Notify(string.format("✅ Jarak BotID3 diatur ke %d", distance), 3)
+                    end
+                elseif msg:match("^!aturjarak4 ") then
+                    local distance = tonumber(msg:match("^!aturjarak4 (%d+)"))
+                    if distance then
+                        botDistances["8802998147"] = distance
+                        Library:Notify(string.format("✅ Jarak BotID4 diatur ke %d", distance), 3)
+                    end
+                elseif msg:match("^!aturjarak5 ") then
+                    local distance = tonumber(msg:match("^!aturjarak5 (%d+)"))
+                    if distance then
+                        botDistances["8802991722"] = distance
+                        Library:Notify(string.format("✅ Jarak BotID5 diatur ke %d", distance), 3)
+                    end
+                end
+            end
 
             if msg == "!stop" then
                 runStopCommand()
@@ -397,7 +448,10 @@ function setupBotFollowSystem()
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
-                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
+                local uid = tostring(localPlayer.UserId)
+                local distanceToUse = botDistances[uid] or jarakIkut
+                
+                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * distanceToUse
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
