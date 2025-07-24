@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v111.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -26,14 +26,14 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 
-local clientName = "bodyguardshoprblx" -- Default client name set here
+local clientName = ""
 local jarakIkut = 5          -- Default follow distance
 local jarakFormasi = 5       -- Formation distance (separate from follow distance)
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
-local adminName = "bodyguardshoprblx" -- Default admin name
+local adminName = "bodyguardshoprblx"
 
 -- Individual bot settings
 local botSettings = {
@@ -49,6 +49,7 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
+local activeClientName = nil -- This will track the currently active client
 
 -- ✅ Reset & Stop Function
 local function runStopCommand()
@@ -105,23 +106,17 @@ GroupBox1:AddToggle("AktifkanFollow", {
 })
 
 GroupBox1:AddInput("NamaClientInput", {
-    Default = clientName, -- Set default value to clientName
+    Default = "",
     Text = "Client Name",
     Placeholder = "Example: MasterZ_YT",
     Callback = function(Value)
-        -- Only allow admin to change client name through the UI
-        if localPlayer.Name == adminName then
-            clientName = Value
-            print("Client set to:", clientName)
-        else
-            Library:Notify("❌ Only admin can change client name", 3)
-            Options.NamaClientInput:SetValue(clientName) -- Reset to current client name
-        end
+        clientName = Value
+        print("Client set to:", clientName)
     end,
 })
 
 GroupBox1:AddInput("AdminName", {
-    Default = adminName,
+    Default = "bodyguardshoprblx",
     Text = "Admin Name",
     Placeholder = "bodyguardshoprblx",
     Callback = function(Value)
@@ -260,25 +255,39 @@ function setupBotFollowSystem()
         if msg:match("^!clientname ") then
             local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
             if newName ~= "" then
-                -- Disconnect old client's connections
-                if client and client.Parent then
-                    if followConnection then
-                        followConnection:Disconnect()
-                        followConnection = nil
+                -- Check if the client exists
+                local clientExists = false
+                for _, p in ipairs(Players:GetPlayers()) do
+                    if p.Name:lower() == newName:lower() then
+                        clientExists = true
+                        break
                     end
                 end
                 
-                -- Set new client name
-                clientName = newName
-                Options.NamaClientInput:SetValue(newName)
-                Library:Notify("Admin changed client name to: "..newName, 5)
-                
-                -- Reconnect to new client if they exist
-                local newClient = Players:FindFirstChild(newName)
-                if newClient then
-                    setupClient(newClient)
+                if clientExists then
+                    activeClientName = newName
+                    clientName = newName
+                    Options.NamaClientInput:SetValue(newName)
+                    
+                    -- Disconnect any existing follow connections
+                    if followConnection then 
+                        followConnection:Disconnect() 
+                        followConnection = nil
+                    end
+                    
+                    -- Find and setup the new client
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p.Name:lower() == newName:lower() then
+                            setupClient(p)
+                            break
+                        end
+                    end
+                    
+                    Library:Notify("Admin changed active client to: "..newName, 5)
+                    runStopCommand() -- Reset any current following
+                else
+                    Library:Notify("❌ Client not found: "..newName, 3)
                 end
-                
                 return true
             else
                 Library:Notify("❌ Client name cannot be empty", 3)
@@ -341,8 +350,8 @@ function setupBotFollowSystem()
     end
 
     local function setupClient(player)
-        -- Only connect to the current client
-        if player.Name ~= clientName then return end
+        -- Only setup if this is the active client
+        if activeClientName and player.Name:lower() ~= activeClientName:lower() then return end
         
         -- Disconnect any existing connection
         if followConnection then
@@ -353,6 +362,9 @@ function setupBotFollowSystem()
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
+            -- Check if this is the active client
+            if activeClientName and player.Name:lower() ~= activeClientName:lower() then return end
+            
             -- Check admin commands first
             if handleAdminCommand(player, msg) then return end
             
@@ -529,7 +541,11 @@ function setupBotFollowSystem()
                 handleAdminCommand(player, msg)
             end)
         end
-        setupClient(player)
+        
+        -- Only setup client if there's no active client yet or if this is the active client
+        if not activeClientName or player.Name:lower() == activeClientName:lower() then
+            setupClient(player)
+        end
     end
 
     -- Handle new admin joining
@@ -539,7 +555,11 @@ function setupBotFollowSystem()
                 handleAdminCommand(player, msg)
             end)
         end
-        setupClient(player)
+        
+        -- Only setup client if there's no active client yet or if this is the active client
+        if not activeClientName or player.Name:lower() == activeClientName:lower() then
+            setupClient(player)
+        end
     end)
 
     localPlayer.CharacterAdded:Connect(updateBotRefs)
