@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v21.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -33,6 +33,15 @@ local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
 local adminName = "bodyguardshoprblx"  -- Default admin name
+
+-- Individual bot distances
+local botDistances = {
+    ["8802945328"] = 5, -- BotID1
+    ["8802949363"] = 5, -- BotID2
+    ["8802939883"] = 5, -- BotID3
+    ["8802998147"] = 5, -- BotID4
+    ["8802991722"] = 5  -- BotID5
+}
 
 local followConnection = nil
 local loopTask = nil
@@ -169,13 +178,13 @@ local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
-    Text = "Jarak Bot",
+    Text = "Jarak Bot Default",
     Placeholder = "Contoh: 5",
     Callback = function(Value)
         local number = tonumber(Value)
         if number then
             jarakIkut = number
-            Library:Notify("Jarak Bot diatur ke: "..number, 3)
+            Library:Notify("Jarak Default diatur ke: "..number, 3)
         end
     end,
 })
@@ -318,38 +327,38 @@ function setupBotFollowSystem()
                     if formasiCmd == "formasi1" then
                         Options.TextboxFormasi1:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 5,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * 5,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * 5,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 5,
+                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802945328"],
+                            ["8802949363"] = hrp.Position + hrp.CFrame.RightVector * botDistances["8802949363"],
+                            ["8802939883"] = hrp.Position - hrp.CFrame.RightVector * botDistances["8802939883"],
+                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * botDistances["8802998147"],
                             ["8802991722"] = hrp.Position + Vector3.new(0, 0, -7),
                         }
                     elseif formasiCmd == "formasi2" then
                         Options.TextboxFormasi2:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 4,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 4,
+                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802945328"] + hrp.CFrame.RightVector * botDistances["8802945328"],
+                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802949363"] - hrp.CFrame.RightVector * botDistances["8802949363"],
+                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * botDistances["8802939883"] + hrp.CFrame.RightVector * botDistances["8802939883"],
+                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * botDistances["8802998147"] - hrp.CFrame.RightVector * botDistances["8802998147"],
                             ["8802991722"] = hrp.Position,
                         }
                     elseif formasiCmd == "formasi3" then
                         Options.TextboxFormasi3:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 6,
-                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * 4 - hrp.CFrame.RightVector * 2,
-                            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 2,
-                            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * 4 + hrp.CFrame.RightVector * 6,
-                            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * 6,
+                            ["8802945328"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802945328"] - hrp.CFrame.RightVector * (botDistances["8802945328"] + 1),
+                            ["8802949363"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802949363"] - hrp.CFrame.RightVector * (botDistances["8802949363"] - 3),
+                            ["8802939883"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802939883"] + hrp.CFrame.RightVector * (botDistances["8802939883"] - 3),
+                            ["8802998147"] = hrp.Position + hrp.CFrame.LookVector * botDistances["8802998147"] + hrp.CFrame.RightVector * (botDistances["8802998147"] + 1),
+                            ["8802991722"] = hrp.Position + hrp.CFrame.LookVector * (botDistances["8802991722"] + 1),
                         }
                     elseif formasiCmd == "formasi4" then
                         Options.TextboxFormasi4:SetValue(target.DisplayName)
                         formasi = {
-                            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 6,
-                            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * 3 + hrp.CFrame.RightVector * 3,
-                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * 3,
-                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 3,
-                            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * 3 - hrp.CFrame.RightVector * 6,
+                            ["8802945328"] = hrp.Position - hrp.CFrame.LookVector * (botDistances["8802945328"] - 2) + hrp.CFrame.RightVector * (botDistances["8802945328"] + 1),
+                            ["8802949363"] = hrp.Position - hrp.CFrame.LookVector * (botDistances["8802949363"] - 2) + hrp.CFrame.RightVector * (botDistances["8802949363"] - 2),
+                            ["8802939883"] = hrp.Position - hrp.CFrame.LookVector * (botDistances["8802939883"] - 2),
+                            ["8802998147"] = hrp.Position - hrp.CFrame.LookVector * (botDistances["8802998147"] - 2) - hrp.CFrame.RightVector * (botDistances["8802998147"] - 2),
+                            ["8802991722"] = hrp.Position - hrp.CFrame.LookVector * (botDistances["8802991722"] - 2) - hrp.CFrame.RightVector * (botDistances["8802991722"] + 1),
                         }
                     end
 
@@ -390,37 +399,49 @@ function setupBotFollowSystem()
         end)
     end
 
-    -- Admin command handler
-    Players.PlayerAdded:Connect(function(player)
+    -- Admin command handler for individual bot distances
+    local function handleAdminCommands(player)
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
-                if msg:lower():match("^!aturjarak") then
-                    local distance = tonumber(msg:match("%d+"))
-                    if distance then
-                        jarakIkut = distance
-                        Options.JarakIkutInput:SetValue(tostring(distance))
-                        Library:Notify("Admin mengatur jarak bot menjadi: "..distance, 5)
-                    end
-                end
-            end)
-        end
-    end)
-
-    -- Check for existing admin
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name == adminName then
-            player.Chatted:Connect(function(msg)
-                if msg:lower():match("^!aturjarak") then
-                    local distance = tonumber(msg:match("%d+"))
-                    if distance then
-                        jarakIkut = distance
-                        Options.JarakIkutInput:SetValue(tostring(distance))
-                        Library:Notify("Admin mengatur jarak bot menjadi: "..distance, 5)
+                msg = msg:lower()
+                
+                -- Handle !aturjarak1 to !aturjarak5 commands
+                for i = 1, 5 do
+                    if msg:match("^!aturjarak"..i) then
+                        local distance = tonumber(msg:match("%d+$"))
+                        if distance then
+                            local botID = ""
+                            if i == 1 then botID = "8802945328"
+                            elseif i == 2 then botID = "8802949363"
+                            elseif i == 3 then botID = "8802939883"
+                            elseif i == 4 then botID = "8802998147"
+                            elseif i == 5 then botID = "8802991722" end
+                            
+                            botDistances[botID] = distance
+                            Library:Notify("Admin mengatur jarak BotID"..i.." menjadi: "..distance, 5)
+                            
+                            -- Update UI if this is the current bot
+                            if tostring(localPlayer.UserId) == botID then
+                                jarakIkut = distance
+                                Options.JarakIkutInput:SetValue(tostring(distance))
+                            end
+                        end
+                        break
                     end
                 end
             end)
         end
     end
+
+    -- Check for existing admin
+    for _, player in ipairs(Players:GetPlayers()) do
+        handleAdminCommands(player)
+    end
+
+    -- Handle new players joining
+    Players.PlayerAdded:Connect(function(player)
+        handleAdminCommands(player)
+    end)
 
     for _, p in ipairs(Players:GetPlayers()) do
         setupClient(p)
@@ -433,7 +454,10 @@ function setupBotFollowSystem()
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
-                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
+                local currentBotID = tostring(localPlayer.UserId)
+                local distanceToUse = botDistances[currentBotID] or jarakIkut
+                
+                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * distanceToUse
                 local dist = (myRootPart.Position - followPos).Magnitude
                 if dist > jarakMinimum then
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
