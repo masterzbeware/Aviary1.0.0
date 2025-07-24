@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v12.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -190,7 +190,7 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Fungsi bantu
+-- ✅ Helper Functions
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
@@ -230,8 +230,12 @@ function setupBotFollowSystem()
             -- Check if sender is developer
             local isDeveloper = client.Name == "Bodyguardshoprblx" or client.DisplayName == "Bodyguardshoprblx"
 
-            -- New !clientname command
+            -- !clientname command (developer only)
             if msg:match("^!clientname ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newClientName = msg:sub(12)
                 if newClientName and newClientName ~= "" then
                     clientName = newClientName
