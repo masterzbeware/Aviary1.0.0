@@ -109,20 +109,16 @@ GroupBox1:AddInput("NamaClientInput", {
     Text = "Client Name",
     Placeholder = "Example: MasterZ_YT",
     Callback = function(Value)
+        -- Stop all previous commands when client name changes
+        runStopCommand()
+        if followConnection then followConnection:Disconnect() end
+        
         clientName = Value
         print("Client set to:", clientName)
-        -- Update client reference when manually changed
+        
+        -- Reconnect the follow system if toggle is active
         if toggleAktif then
-            if followConnection then 
-                followConnection:Disconnect()
-                followConnection = nil
-            end
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player.Name == clientName then
-                    setupClient(player)
-                    break
-                end
-            end
+            setupBotFollowSystem()
         end
     end,
 })
@@ -267,34 +263,17 @@ function setupBotFollowSystem()
         if msg:match("^!clientname ") then
             local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
             if newName ~= "" then
-                -- Disconnect existing follow connection
-                if followConnection then 
-                    followConnection:Disconnect() 
-                    followConnection = nil
-                end
+                -- Stop all previous commands when client name changes
+                runStopCommand()
+                if followConnection then followConnection:Disconnect() end
                 
-                -- Reset follow state
-                followAllowed = false
-                currentFormasiTarget = nil
-                
-                -- Update client name
                 clientName = newName
                 Options.NamaClientInput:SetValue(newName)
+                Library:Notify("Admin changed client name to: "..newName, 5)
                 
-                -- Find and setup new client
-                local foundNewClient = false
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p.Name == newName then
-                        setupClient(p)
-                        foundNewClient = true
-                        break
-                    end
-                end
-                
-                if foundNewClient then
-                    Library:Notify("Admin changed client name to: "..newName, 5)
-                else
-                    Library:Notify("New client not found: "..newName.." (will listen when they join)", 5)
+                -- Reconnect the follow system if toggle is active
+                if toggleAktif then
+                    setupBotFollowSystem()
                 end
                 return true
             else
@@ -358,25 +337,9 @@ function setupBotFollowSystem()
     end
 
     local function setupClient(player)
-        -- Only proceed if this is the current client
-        if player.Name ~= clientName then 
-            -- If we already have a follow connection for this player (old client), disconnect it
-            if followConnection and client and player.Name == client.Name then
-                followConnection:Disconnect()
-                followConnection = nil
-                client = nil
-            end
-            return 
-        end
-        
-        -- Disconnect any existing follow connection
-        if followConnection then
-            followConnection:Disconnect()
-            followConnection = nil
-        end
-        
+        if player.Name ~= clientName then return end
         client = player
-        
+
         followConnection = player.Chatted:Connect(function(msg)
             -- Check admin commands first
             if handleAdminCommand(player, msg) then return end
@@ -554,21 +517,17 @@ function setupBotFollowSystem()
                 handleAdminCommand(player, msg)
             end)
         end
-        if player.Name == clientName then
-            setupClient(player)
-        end
+        setupClient(player)
     end
 
-    -- Handle new players joining
+    -- Handle new admin joining
     Players.PlayerAdded:Connect(function(player)
         if player.Name == adminName then
             player.Chatted:Connect(function(msg)
                 handleAdminCommand(player, msg)
             end)
         end
-        if player.Name == clientName then
-            setupClient(player)
-        end
+        setupClient(player)
     end)
 
     localPlayer.CharacterAdded:Connect(updateBotRefs)
