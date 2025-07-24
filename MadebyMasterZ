@@ -68,25 +68,26 @@ local function runStopCommand()
             :InvokeServer(unpack(stopArgs))
     end)
     
-    Library:Notify("❌ Bot stopped & textboxes cleared", 3)
+    Library:Notify("❌ Bot dihentikan & textbox dikosongkan", 3)
 end
 
 -- ✅ UI LEFT - Main Tab
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
-    Text = "Enable Bot Follow",
+    Text = "Aktifkan Bot Follow",
     Default = false,
-    Tooltip = "Enable to accept !ikuti commands",
+    Tooltip = "Nyalakan agar bot siap menerima perintah !ikuti",
     Callback = function(Value)
         toggleAktif = Value
+
         if Value then
-            Library:Notify("Bot Follow Enabled", 3)
+            Library:Notify("Bot Follow Diaktifkan", 3)
             if followConnection then followConnection:Disconnect() end
             if loopTask then loopTask:Disconnect() end
             setupBotFollowSystem()
         else
-            Library:Notify("Bot Follow Disabled", 3)
+            Library:Notify("Bot Follow Dimatikan", 3)
             runStopCommand()
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
@@ -96,19 +97,19 @@ GroupBox1:AddToggle("AktifkanFollow", {
 
 GroupBox1:AddInput("NamaClientInput", {
     Default = "",
-    Text = "Client Name",
-    Placeholder = "Example: MasterZ_YT",
+    Text = "Nama Client",
+    Placeholder = "Contoh: MasterZ_YT",
     Callback = function(Value)
         clientName = Value
-        print("Client set to:", clientName)
+        print("Client diatur ke:", clientName)
     end,
 })
 
 GroupBox1:AddInput("DeveloperName", {
     Default = "Bodyguardshoprblx",
     Text = "Developer Name",
-    Placeholder = "Developer Name",
-    Tooltip = "Script creator name",
+    Placeholder = "Nama Developer",
+    Tooltip = "Nama pembuat script ini",
     Callback = function(Value)
         print("Developer:", Value)
     end
@@ -120,7 +121,7 @@ local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
 GroupBox3:AddInput("TextboxDisplayName", {
     Default = "",
     Text = "Target DisplayName",
-    Placeholder = "Empty",
+    Placeholder = "Kosong",
     Callback = function(Value)
         print("DisplayName target:", Value)
     end,
@@ -128,47 +129,47 @@ GroupBox3:AddInput("TextboxDisplayName", {
 
 GroupBox3:AddInput("TextboxFormasi1", {
     Default = "",
-    Text = "Formation 1 Target",
-    Placeholder = "Empty",
+    Text = "Formasi 1 Target",
+    Placeholder = "Kosong",
     Callback = function(Value)
-        print("Formation 1 Target:", Value)
+        print("Formasi 1 Target:", Value)
     end,
 })
 
 GroupBox3:AddInput("TextboxFormasi2", {
     Default = "",
-    Text = "Formation 2 Target",
-    Placeholder = "Empty",
+    Text = "Formasi 2 Target",
+    Placeholder = "Kosong",
     Callback = function(Value)
-        print("Formation 2 Target:", Value)
+        print("Formasi 2 Target:", Value)
     end,
 })
 
 GroupBox3:AddInput("TextboxFormasi3", {
     Default = "",
-    Text = "Formation 3 Target",
-    Placeholder = "Empty",
+    Text = "Formasi 3 Target",
+    Placeholder = "Kosong",
     Callback = function(Value)
-        print("Formation 3 Target:", Value)
+        print("Formasi 3 Target:", Value)
     end,
 })
 
 GroupBox3:AddInput("TextboxFormasi4", {
     Default = "",
-    Text = "Formation 4 Target",
-    Placeholder = "Empty",
+    Text = "Formasi 4 Target",
+    Placeholder = "Kosong",
     Callback = function(Value)
-        print("Formation 4 Target:", Value)
+        print("Formasi 4 Target:", Value)
     end,
 })
 
 -- ✅ UI RIGHT - Distance Settings
-local GroupBox2 = Tabs.Main:AddRightGroupbox("Distance Settings")
+local GroupBox2 = Tabs.Main:AddRightGroupbox("Pengaturan Jarak")
 
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
-    Text = "Bot Distance",
-    Placeholder = "Example: 5",
+    Text = "Jarak Bot",
+    Placeholder = "Contoh: 5",
     Callback = function(Value)
         local number = tonumber(Value)
         if number then
@@ -179,8 +180,8 @@ GroupBox2:AddInput("JarakIkutInput", {
 
 GroupBox2:AddInput("JarakMinimumInput", {
     Default = "2",
-    Text = "Minimum Move Distance",
-    Placeholder = "Example: 2",
+    Text = "Jarak Minimum Bergerak",
+    Placeholder = "Contoh: 2",
     Callback = function(Value)
         local number = tonumber(Value)
         if number then
@@ -189,7 +190,7 @@ GroupBox2:AddInput("JarakMinimumInput", {
     end,
 })
 
--- ✅ Helper Functions
+-- ✅ Fungsi bantu
 local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
@@ -210,10 +211,10 @@ local function fullRefresh()
         setupBotFollowSystem()
     end
     
-    Library:Notify("✅ System refreshed", 3)
+    Library:Notify("✅ Sistem berhasil di-refresh ulang", 3)
 end
 
--- ✅ Follow & Formation System
+-- ✅ Sistem Follow & Formasi
 function setupBotFollowSystem()
     updateBotRefs()
 
@@ -226,108 +227,152 @@ function setupBotFollowSystem()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
 
-            -- Global distance commands
+            -- Check if sender is developer
+            local isDeveloper = client.Name == "Bodyguardshoprblx" or client.DisplayName == "Bodyguardshoprblx"
+
             if msg == "!stop" then
                 runStopCommand()
             elseif msg == "!refresh" then
                 fullRefresh()
             elseif msg:match("^!aturjarak ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newDistance = tonumber(msg:sub(11))
                 if newDistance and newDistance > 0 then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ All bots distance set to: "..newDistance, 3)
+                    Library:Notify("✅ Jarak semua bot diatur ke: "..newDistance, 3)
                 else
-                    Library:Notify("❌ Invalid number (example: !aturjarak 5)", 3)
+                    Library:Notify("❌ Masukkan angka yang valid (contoh: !aturjarak 5)", 3)
                 end
             elseif msg:match("^!minjarak ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newMinDistance = tonumber(msg:sub(10))
                 if newMinDistance and newMinDistance > 0 then
                     jarakMinimum = newMinDistance
                     Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
-                    Library:Notify("✅ All bots minimum distance set to: "..newMinDistance, 3)
+                    Library:Notify("✅ Jarak minimum semua bot diatur ke: "..newMinDistance, 3)
                 else
-                    Library:Notify("❌ Invalid number (example: !minjarak 2)", 3)
+                    Library:Notify("❌ Masukkan angka yang valid (contoh: !minjarak 2)", 3)
                 end
-
-            -- Individual bot distance commands
-            elseif msg:match("^!aturjarak1 ") and tostring(localPlayer.UserId) == "8802945328" then
+            elseif msg:match("^!aturjarak1 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newDistance = tonumber(msg:sub(12))
-                if newDistance and newDistance > 0 then
+                if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802945328" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Bot 1 distance set to: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 1 diatur ke: "..newDistance, 3)
                 end
-            elseif msg:match("^!aturjarak2 ") and tostring(localPlayer.UserId) == "8802949363" then
+            elseif msg:match("^!aturjarak2 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newDistance = tonumber(msg:sub(12))
-                if newDistance and newDistance > 0 then
+                if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802949363" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Bot 2 distance set to: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 2 diatur ke: "..newDistance, 3)
                 end
-            elseif msg:match("^!aturjarak3 ") and tostring(localPlayer.UserId) == "8802939883" then
+            elseif msg:match("^!aturjarak3 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newDistance = tonumber(msg:sub(12))
-                if newDistance and newDistance > 0 then
+                if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802939883" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Bot 3 distance set to: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 3 diatur ke: "..newDistance, 3)
                 end
-            elseif msg:match("^!aturjarak4 ") and tostring(localPlayer.UserId) == "8802998147" then
+            elseif msg:match("^!aturjarak4 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newDistance = tonumber(msg:sub(12))
-                if newDistance and newDistance > 0 then
+                if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802998147" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Bot 4 distance set to: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 4 diatur ke: "..newDistance, 3)
                 end
-            elseif msg:match("^!aturjarak5 ") and tostring(localPlayer.UserId) == "8802991722" then
+            elseif msg:match("^!aturjarak5 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newDistance = tonumber(msg:sub(12))
-                if newDistance and newDistance > 0 then
+                if newDistance and newDistance > 0 and tostring(localPlayer.UserId) == "8802991722" then
                     jarakIkut = newDistance
                     Options.JarakIkutInput:SetValue(tostring(newDistance))
-                    Library:Notify("✅ Bot 5 distance set to: "..newDistance, 3)
+                    Library:Notify("✅ Jarak Bot 5 diatur ke: "..newDistance, 3)
                 end
-
-            -- Individual bot minimum distance commands
-            elseif msg:match("^!minjarak1 ") and tostring(localPlayer.UserId) == "8802945328" then
+            elseif msg:match("^!minjarak1 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newMinDistance = tonumber(msg:sub(11))
-                if newMinDistance and newMinDistance > 0 then
+                if newMinDistance and newMinDistance > 0 and tostring(localPlayer.UserId) == "8802945328" then
                     jarakMinimum = newMinDistance
                     Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
-                    Library:Notify("✅ Bot 1 minimum distance set to: "..newMinDistance, 3)
+                    Library:Notify("✅ Jarak minimum Bot 1 diatur ke: "..newMinDistance, 3)
                 end
-            elseif msg:match("^!minjarak2 ") and tostring(localPlayer.UserId) == "8802949363" then
+            elseif msg:match("^!minjarak2 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newMinDistance = tonumber(msg:sub(11))
-                if newMinDistance and newMinDistance > 0 then
+                if newMinDistance and newMinDistance > 0 and tostring(localPlayer.UserId) == "8802949363" then
                     jarakMinimum = newMinDistance
                     Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
-                    Library:Notify("✅ Bot 2 minimum distance set to: "..newMinDistance, 3)
+                    Library:Notify("✅ Jarak minimum Bot 2 diatur ke: "..newMinDistance, 3)
                 end
-            elseif msg:match("^!minjarak3 ") and tostring(localPlayer.UserId) == "8802939883" then
+            elseif msg:match("^!minjarak3 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newMinDistance = tonumber(msg:sub(11))
-                if newMinDistance and newMinDistance > 0 then
+                if newMinDistance and newMinDistance > 0 and tostring(localPlayer.UserId) == "8802939883" then
                     jarakMinimum = newMinDistance
                     Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
-                    Library:Notify("✅ Bot 3 minimum distance set to: "..newMinDistance, 3)
+                    Library:Notify("✅ Jarak minimum Bot 3 diatur ke: "..newMinDistance, 3)
                 end
-            elseif msg:match("^!minjarak4 ") and tostring(localPlayer.UserId) == "8802998147" then
+            elseif msg:match("^!minjarak4 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newMinDistance = tonumber(msg:sub(11))
-                if newMinDistance and newMinDistance > 0 then
+                if newMinDistance and newMinDistance > 0 and tostring(localPlayer.UserId) == "8802998147" then
                     jarakMinimum = newMinDistance
                     Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
-                    Library:Notify("✅ Bot 4 minimum distance set to: "..newMinDistance, 3)
+                    Library:Notify("✅ Jarak minimum Bot 4 diatur ke: "..newMinDistance, 3)
                 end
-            elseif msg:match("^!minjarak5 ") and tostring(localPlayer.UserId) == "8802991722" then
+            elseif msg:match("^!minjarak5 ") then
+                if not isDeveloper then
+                    Library:Notify("❌ Hanya developer yang bisa menggunakan command ini", 3)
+                    return
+                end
                 local newMinDistance = tonumber(msg:sub(11))
-                if newMinDistance and newMinDistance > 0 then
+                if newMinDistance and newMinDistance > 0 and tostring(localPlayer.UserId) == "8802991722" then
                     jarakMinimum = newMinDistance
                     Options.JarakMinimumInput:SetValue(tostring(newMinDistance))
-                    Library:Notify("✅ Bot 5 minimum distance set to: "..newMinDistance, 3)
+                    Library:Notify("✅ Jarak minimum Bot 5 diatur ke: "..newMinDistance, 3)
                 end
-
-            -- [Rest of existing commands...]
             elseif msg == "!gabung" then
                 followAllowed = false
-                Library:Notify("!gabung command received. Syncing...", 4)
+                Library:Notify("Perintah !gabung diterima. Sinkronisasi...", 4)
                 local args = { "sync", client.UserId }
                 local success, err = pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
@@ -336,15 +381,15 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
-                    Library:Notify("✅ Bot joined client ID: " .. client.UserId, 3)
+                    Library:Notify("✅ Bot bergabung ke client ID: " .. client.UserId, 3)
                 else
-                    Library:Notify("❌ Sync failed", 3)
+                    Library:Notify("❌ Gagal sync", 3)
                 end
             elseif msg == "!ikuti" then
                 followAllowed = true
                 currentFormasiTarget = client
                 Options.TextboxDisplayName:SetValue("")
-                Library:Notify("Bot following main client: " .. client.DisplayName, 3)
+                Library:Notify("Bot mengikuti client utama: " .. client.DisplayName, 3)
             elseif msg:match("^!ikuti ") then
                 runStopCommand()
                 local targetDisplayName = msg:sub(8)
@@ -361,9 +406,9 @@ function setupBotFollowSystem()
                     followAllowed = true
                     currentFormasiTarget = foundTarget
                     Options.TextboxDisplayName:SetValue(foundTarget.DisplayName)
-                    Library:Notify("Following: " .. foundTarget.DisplayName, 3)
+                    Library:Notify("Mengikuti: " .. foundTarget.DisplayName, 3)
                 else
-                    Library:Notify("❌ Target not found: " .. targetDisplayName, 3)
+                    Library:Notify("❌ Target tidak ditemukan: " .. targetDisplayName, 3)
                 end
             elseif msg == "!pushup" then
                 runStopCommand()
@@ -378,9 +423,9 @@ function setupBotFollowSystem()
                         :InvokeServer(unpack(args))
                 end)
                 if success then
-                    Library:Notify("✅ Bot doing push up", 3)
+                    Library:Notify("✅ Bot melakukan push up", 3)
                 else
-                    Library:Notify("❌ Failed to do push up", 3)
+                    Library:Notify("❌ Gagal melakukan push up", 3)
                 end
             elseif msg:match("^!formasi[1234]") then
                 runStopCommand()
@@ -450,7 +495,7 @@ function setupBotFollowSystem()
                         humanoid:MoveTo(posisiTarget)
                     end
                 else
-                    Library:Notify("❌ Target not found!", 3)
+                    Library:Notify("❌ Target tidak ditemukan!", 3)
                     currentFormasiTarget = nil
                 end
             elseif msg == "!absen" then
