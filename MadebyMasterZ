@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v111.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -49,7 +49,6 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
-local activeClientName = nil -- This will track the currently active client
 
 -- ✅ Reset & Stop Function
 local function runStopCommand()
@@ -255,38 +254,20 @@ function setupBotFollowSystem()
         if msg:match("^!clientname ") then
             local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
             if newName ~= "" then
-                -- Check if the client exists
-                local clientExists = false
-                for _, p in ipairs(Players:GetPlayers()) do
-                    if p.Name:lower() == newName:lower() then
-                        clientExists = true
-                        break
-                    end
-                end
+                clientName = newName
+                Options.NamaClientInput:SetValue(newName)
+                Library:Notify("Admin changed client name to: "..newName, 5)
                 
-                if clientExists then
-                    activeClientName = newName
-                    clientName = newName
-                    Options.NamaClientInput:SetValue(newName)
-                    
-                    -- Disconnect any existing follow connections
-                    if followConnection then 
-                        followConnection:Disconnect() 
-                        followConnection = nil
-                    end
-                    
-                    -- Find and setup the new client
+                -- Update follow target if currently following
+                if followAllowed and currentFormasiTarget == client then
                     for _, p in ipairs(Players:GetPlayers()) do
-                        if p.Name:lower() == newName:lower() then
-                            setupClient(p)
+                        if p.Name == newName or p.DisplayName == newName then
+                            currentFormasiTarget = p
+                            client = p
+                            Library:Notify("Now following new client: "..newName, 5)
                             break
                         end
                     end
-                    
-                    Library:Notify("Admin changed active client to: "..newName, 5)
-                    runStopCommand() -- Reset any current following
-                else
-                    Library:Notify("❌ Client not found: "..newName, 3)
                 end
                 return true
             else
@@ -350,21 +331,10 @@ function setupBotFollowSystem()
     end
 
     local function setupClient(player)
-        -- Only setup if this is the active client
-        if activeClientName and player.Name:lower() ~= activeClientName:lower() then return end
-        
-        -- Disconnect any existing connection
-        if followConnection then
-            followConnection:Disconnect()
-            followConnection = nil
-        end
-        
+        if player.Name ~= clientName then return end
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
-            -- Check if this is the active client
-            if activeClientName and player.Name:lower() ~= activeClientName:lower() then return end
-            
             -- Check admin commands first
             if handleAdminCommand(player, msg) then return end
             
@@ -541,11 +511,7 @@ function setupBotFollowSystem()
                 handleAdminCommand(player, msg)
             end)
         end
-        
-        -- Only setup client if there's no active client yet or if this is the active client
-        if not activeClientName or player.Name:lower() == activeClientName:lower() then
-            setupClient(player)
-        end
+        setupClient(player)
     end
 
     -- Handle new admin joining
@@ -555,11 +521,7 @@ function setupBotFollowSystem()
                 handleAdminCommand(player, msg)
             end)
         end
-        
-        -- Only setup client if there's no active client yet or if this is the active client
-        if not activeClientName or player.Name:lower() == activeClientName:lower() then
-            setupClient(player)
-        end
+        setupClient(player)
     end)
 
     localPlayer.CharacterAdded:Connect(updateBotRefs)
