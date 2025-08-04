@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v21.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -27,12 +27,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PathfindingService = game:GetService("PathfindingService")
 local localPlayer = Players.LocalPlayer
 
--- Verifikasi PathfindingService
-if not PathfindingService:IsA("PathfindingService") then
-    Library:Notify("❌ PathfindingService tidak aktif di game ini!", 5)
-    return
-end
-
 -- Config
 local clientName = ""
 local jarakIkut = 5
@@ -42,8 +36,12 @@ local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
 local adminName = "bodyguardshoprblx"
-local pathfindCooldown = 0.5
-local lastPathfindTime = 0
+
+-- Movement Settings
+local movementCooldown = 0.3
+local lastMovementTime = 0
+local naturalMovementDelay = 0.5 -- Untuk gerakan lebih natural
+local maxSpeed = 16 -- Kecepatan maksimal humanoid
 
 -- Bot Settings
 local botSettings = {
@@ -60,126 +58,60 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
-local currentPath = nil
-local waypoints = nil
-local currentWaypointIndex = nil
 
--- ✅ Pathfinding Functions
-local function computePath(targetPosition)
-    if not myRootPart then return nil end
+-- ✅ Natural Movement Functions
+local function applyNaturalMovement()
+    if not humanoid then return end
     
-    local path = PathfindingService:CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true,
-        WaypointSpacing = 2,
-        Costs = {
-            Water = 20,
-            Lava = 30
-        }
-    })
+    -- Atur kecepatan secara acak untuk efek lebih natural
+    humanoid.WalkSpeed = math.random(maxSpeed - 4, maxSpeed)
     
-    local success, errorMessage = pcall(function()
-        path:ComputeAsync(myRootPart.Position, targetPosition)
-    end)
-    
-    if not success then
-        Library:Notify("❌ Error Pathfinding: "..tostring(errorMessage), 3)
-        return nil
+    -- Tambahkan delay kecil sebelum bergerak
+    if math.random() < 0.3 then -- 30% chance untuk delay kecil
+        task.wait(math.random(0.1, 0.3))
     end
     
-    return path
-end
-
-local function followPath(targetPosition)
-    if not humanoid or not myRootPart then 
-        Library:Notify("❌ Humanoid/RootPart tidak ditemukan!", 3)
-        return false 
-    end
-    
-    -- Cooldown check
-    local now = tick()
-    if now - lastPathfindTime < pathfindCooldown then
-        return false
-    end
-    lastPathfindTime = now
-    
-    -- Clear old path
-    if currentPath then
-        currentPath:Destroy()
-        currentPath = nil
-    end
-    
-    -- Compute new path
-    currentPath = computePath(targetPosition)
-    if not currentPath then
-        Library:Notify("⚠️ Gunakan gerak langsung (Pathfinding gagal)", 2)
-        humanoid:MoveTo(targetPosition)
-        return false
-    end
-    
-    -- Get waypoints
-    waypoints = currentPath:GetWaypoints()
-    if #waypoints == 0 then
-        Library:Notify("❌ Tidak ada waypoint yang ditemukan", 3)
-        return false
-    end
-    
-    -- Start following
-    currentWaypointIndex = 1
-    humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
-    
-    Library:Notify(string.format("🔄 Mulai path (%d waypoints)", #waypoints), 2)
-    return true
-end
-
-local function updatePathFollowing()
-    if not waypoints or not currentWaypointIndex or not humanoid or not myRootPart then 
-        return 
-    end
-    
-    local currentWaypoint = waypoints[currentWaypointIndex]
-    local distance = (myRootPart.Position - currentWaypoint.Position).Magnitude
-    
-    if distance < 2.5 then
-        -- Handle jumping
-        if currentWaypoint.Action == Enum.PathWaypointAction.Jump then
-            humanoid.Jump = true
-        end
-        
-        -- Move to next waypoint
-        currentWaypointIndex += 1
-        
-        if currentWaypointIndex <= #waypoints then
-            humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
-        else
-            -- Path complete
-            waypoints = nil
-            currentWaypointIndex = nil
-            if currentPath then
-                currentPath:Destroy()
-                currentPath = nil
-            end
-            Library:Notify("✅ Sampai di tujuan", 2)
-        end
+    -- Sesekali berhenti sebentar
+    if math.random() < 0.05 then -- 5% chance untuk pause
+        local pauseTime = math.random(0.2, 0.5)
+        humanoid.WalkSpeed = 0
+        task.wait(pauseTime)
+        humanoid.WalkSpeed = maxSpeed
     end
 end
 
--- ✅ Movement Functions
+local function smoothLookAt(targetPosition)
+    if not myRootPart then return end
+    
+    local currentCFrame = myRootPart.CFrame
+    local targetCFrame = CFrame.lookAt(myRootPart.Position, targetPosition)
+    
+    -- Interpolasi halus untuk rotasi
+    for i = 0, 1, 0.1 do
+        if not myRootPart then break end
+        myRootPart.CFrame = currentCFrame:Lerp(targetCFrame, i)
+        task.wait(0.02)
+    end
+end
+
 local function moveToPosition(targetPosition)
     if not humanoid or not myRootPart then return end
     
-    -- Cek jarak minimum
-    local distance = (myRootPart.Position - targetPosition).Magnitude
-    if distance < jarakMinimum then return end
-    
-    -- Coba pathfinding dulu
-    local pathSuccess = followPath(targetPosition)
-    
-    -- Fallback ke sistem lama jika pathfinding gagal
-    if not pathSuccess then
-        humanoid:MoveTo(targetPosition)
+    -- Cooldown check
+    local now = tick()
+    if now - lastMovementTime < movementCooldown then
+        return
     end
+    lastMovementTime = now
+    
+    -- Terapkan gerakan natural
+    applyNaturalMovement()
+    
+    -- Putar badan secara halus ke arah target
+    smoothLookAt(targetPosition)
+    
+    -- Bergerak ke target
+    humanoid:MoveTo(targetPosition)
 end
 
 -- ✅ Bot Control Functions
@@ -187,17 +119,10 @@ local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
     
-    -- Clear pathfinding
-    if currentPath then
-        currentPath:Destroy()
-        currentPath = nil
-    end
-    waypoints = nil
-    currentWaypointIndex = nil
-    
     -- Stop movement
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
+        humanoid.WalkSpeed = maxSpeed
     end
     
     -- Clear UI
@@ -232,24 +157,11 @@ local function updateBotRefs()
     humanoid = character:FindFirstChildOfClass("Humanoid") or character:WaitForChild("Humanoid")
     myRootPart = character:FindFirstChild("HumanoidRootPart") or character:WaitForChild("HumanoidRootPart")
     
-    -- Ensure humanoid is active
-    humanoid:ChangeState(Enum.HumanoidStateType.Running)
-end
-
-local function fullRefresh()
-    runStopCommand()
-    task.wait(0.5)
-    
-    if followConnection then followConnection:Disconnect() end
-    if loopTask then loopTask:Disconnect() end
-    
-    updateBotRefs()
-    
-    if toggleAktif then
-        setupBotFollowSystem()
+    -- Setel kecepatan normal
+    if humanoid then
+        humanoid.WalkSpeed = maxSpeed
+        humanoid:ChangeState(Enum.HumanoidStateType.Running)
     end
-    
-    Library:Notify("✅ Sistem direfresh", 3)
 end
 
 -- ✅ UI Setup
@@ -384,7 +296,6 @@ function setupBotFollowSystem()
                 clientName = newName
                 Options.NamaClientInput:SetValue(newName)
                 Library:Notify("Admin changed client to: "..newName, 5)
-                fullRefresh()
                 return true
             end
         end
@@ -454,7 +365,9 @@ function setupBotFollowSystem()
             if msg == "!stop" then
                 runStopCommand()
             elseif msg == "!refresh" then
-                fullRefresh()
+                runStopCommand()
+                task.wait(0.5)
+                setupBotFollowSystem()
             elseif msg == "!gabung" then
                 followAllowed = false
                 pcall(function()
@@ -575,7 +488,7 @@ function setupBotFollowSystem()
                     end
                     
                     if posisiTarget then
-                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                        smoothLookAt(hrp.Position)
                         moveToPosition(posisiTarget)
                     end
                 else
@@ -597,14 +510,14 @@ function setupBotFollowSystem()
                     task.wait((giliran - 1) * 2.5)
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                    smoothLookAt(hrp.Position)
                     moveToPosition(posisiAbsen)
                     
                     -- Wait until arrived
                     repeat task.wait() until (myRootPart.Position - posisiAbsen).Magnitude < 3
                     
                     task.wait(1.5)
-                    myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
+                    smoothLookAt(posisiAwal)
                     moveToPosition(posisiAwal)
                 end)
             end
@@ -641,12 +554,6 @@ function setupBotFollowSystem()
 
     -- Main movement loop
     loopTask = RunService.Heartbeat:Connect(function()
-        -- Update path following
-        if waypoints and currentWaypointIndex then
-            updatePathFollowing()
-        end
-        
-        -- Main follow logic
         if followAllowed and currentFormasiTarget and currentFormasiTarget.Character then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
@@ -657,7 +564,7 @@ function setupBotFollowSystem()
                 local distance = (myRootPart.Position - followPos).Magnitude
                 
                 if distance > settings.minDistance then
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+                    smoothLookAt(targetHRP.Position)
                     moveToPosition(followPos)
                 end
             end
