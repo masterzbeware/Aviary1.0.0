@@ -10,7 +10,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v1.0.0",
+    Footer = "v2.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -35,15 +35,8 @@ local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
 local adminName = "bodyguardshoprblx"
-
--- Pathfinding variables
-local path = nil
-local lastPathUpdate = 0
-local pathUpdateInterval = 0.5 -- Update path every 0.5 seconds
-local lastTargetPosition = nil
-local pathfindingEnabled = true
-local pathfindingObstacleTolerance = 3 -- How many failed attempts before giving up
-local currentObstacleAttempts = 0
+local pathfindCooldown = 0.5 -- Cooldown between path recalculations
+local lastPathfindTime = 0
 
 -- Individual bot settings
 local botSettings = {
@@ -59,80 +52,102 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
+local currentPath = nil
+local waypoints = nil
+local currentWaypointIndex = nil
 
 -- ✅ Pathfinding Functions
 local function computePath(targetPosition)
-    if not myRootPart or not humanoid then return nil end
+    if not myRootPart then return end
     
-    local success, result = pcall(function()
-        local newPath = PathfindingService:CreatePath({
-            AgentRadius = 2,
-            AgentHeight = 5,
-            AgentCanJump = true,
-            WaypointSpacing = 1,
-            Costs = {
-                Water = 10,
-                Lava = math.huge
-            }
-        })
-        
-        newPath:ComputeAsync(myRootPart.Position, targetPosition)
-        return newPath
+    -- Create path object
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 2,
+        AgentHeight = 5,
+        AgentCanJump = true,
+        WaypointSpacing = 1,
+        Costs = {
+            Water = 20,
+            Lava = 30
+        }
+    })
+    
+    -- Compute the path
+    local success, errorMessage = pcall(function()
+        path:ComputeAsync(myRootPart.Position, targetPosition)
     end)
     
-    if success and result.Status == Enum.PathStatus.Success then
-        return result
+    if success and path.Status == Enum.PathStatus.Success then
+        return path
+    else
+        if path.Status == Enum.PathStatus.ClosestNoPath then
+            print("Path partially computed - closest point found")
+            return path
+        else
+            print("Pathfinding failed:", path.Status, errorMessage)
+            return nil
+        end
     end
-    return nil
 end
 
 local function followPath(targetPosition)
-    if not path or not myRootPart or not humanoid then return end
+    if not humanoid or not myRootPart then return end
     
-    local waypoints = path:GetWaypoints()
-    if #waypoints == 0 then return end
+    -- Check if we need to recalculate path
+    local now = tick()
+    if now - lastPathfindTime < pathfindCooldown then
+        return
+    end
+    lastPathfindTime = now
     
-    -- Skip the first waypoint if it's too close to current position
-    local startIndex = 1
-    if (waypoints[1].Position - myRootPart.Position).Magnitude < 2 then
-        startIndex = 2
+    -- Clear current path
+    if currentPath then
+        currentPath:Destroy()
+        currentPath = nil
     end
     
-    for i = startIndex, #waypoints do
-        if not followAllowed or not toggleAktif or not currentFormasiTarget then break end
-        
-        local waypoint = waypoints[i]
-        humanoid:MoveTo(waypoint.Position)
-        
-        -- Face the next waypoint or target
-        if i < #waypoints then
-            myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, waypoints[i+1].Position)
-        else
-            myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetPosition)
-        end
-        
-        -- Wait until reached or interrupted
-        local reached = false
-        local connection
-        connection = humanoid.MoveToFinished:Connect(function(reached)
-            if reached then
-                connection:Disconnect()
-                reached = true
-            end
-        end)
-        
-        local startTime = tick()
-        while not reached and (tick() - startTime) < 3 do -- Timeout after 3 seconds
-            if not followAllowed or not toggleAktif or not currentFormasiTarget then 
-                connection:Disconnect()
-                return 
-            end
-            task.wait()
-        end
-        
-        -- Jump if needed
-        if waypoint.Action == Enum.PathWaypointAction.Jump then
+    -- Compute new path
+    currentPath = computePath(targetPosition)
+    if not currentPath then 
+        -- Fallback to direct movement if pathfinding fails
+        humanoid:MoveTo(targetPosition)
+        return
+    end
+    
+    -- Get waypoints
+    waypoints = currentPath:GetWaypoints()
+    if #waypoints == 0 then return end
+    
+    -- Start following waypoints
+    currentWaypointIndex = 1
+    humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+end
+
+local function updatePathFollowing()
+    if not waypoints or not currentWaypointIndex or not humanoid or not myRootPart then return end
+    
+    -- Check if we reached the current waypoint
+    local currentWaypoint = waypoints[currentWaypointIndex]
+    if (myRootPart.Position - currentWaypoint.Position).Magnitude < 2 then
+        -- If this waypoint requires jumping
+        if currentWaypoint.Action == Enum.PathWaypointAction.Jump then
             humanoid.Jump = true
+        end
+        
+        -- Move to next waypoint
+        currentWaypointIndex += 1
+        
+        -- If we have more waypoints, go to next one
+        if currentWaypointIndex <= #waypoints then
+            humanoid:MoveTo(waypoints[currentWaypointIndex].Position)
+        else
+            -- Path complete
+            waypoints = nil
+            currentWaypointIndex = nil
+            if currentPath then
+                currentPath:Destroy()
+                currentPath = nil
+            end
         end
     end
 end
@@ -141,18 +156,25 @@ end
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
-    path = nil
-    lastTargetPosition = nil
-    currentObstacleAttempts = 0
+    
+    -- Clear pathfinding
+    if currentPath then
+        currentPath:Destroy()
+        currentPath = nil
+    end
+    waypoints = nil
+    currentWaypointIndex = nil
     
     if humanoid and myRootPart then
         humanoid:MoveTo(myRootPart.Position)
     end
+    
     Options.TextboxDisplayName:SetValue("")
     Options.TextboxFormasi1:SetValue("")
     Options.TextboxFormasi2:SetValue("")
     Options.TextboxFormasi3:SetValue("")
     Options.TextboxFormasi4:SetValue("")
+    
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -240,17 +262,6 @@ GroupBox1:AddInput("JarakFormasiInput", {
             jarakFormasi = number
             Library:Notify("Formation distance set to: "..number, 3)
         end
-    end,
-})
-
--- Add Pathfinding Toggle
-GroupBox1:AddToggle("EnablePathfinding", {
-    Text = "Enable Pathfinding",
-    Default = true,
-    Tooltip = "Enable advanced pathfinding for obstacle avoidance",
-    Callback = function(Value)
-        pathfindingEnabled = Value
-        Library:Notify("Pathfinding "..(Value and "Enabled" or "Disabled"), 3)
     end,
 })
 
@@ -353,47 +364,6 @@ local function fullRefresh()
     end
     
     Library:Notify("✅ System refreshed", 3)
-end
-
--- ✅ Improved Movement Function
-local function moveToTarget(targetPosition)
-    if not myRootPart or not humanoid then return end
-    
-    -- Simple direct movement if pathfinding is disabled
-    if not pathfindingEnabled then
-        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetPosition)
-        humanoid:MoveTo(targetPosition)
-        return
-    end
-    
-    -- Check if we need to compute a new path
-    local currentTime = tick()
-    local targetMoved = lastTargetPosition and (targetPosition - lastTargetPosition).Magnitude > 2
-    local shouldUpdatePath = not path or targetMoved or (currentTime - lastPathUpdate) > pathUpdateInterval
-    
-    if shouldUpdatePath then
-        lastTargetPosition = targetPosition
-        lastPathUpdate = currentTime
-        
-        local newPath = computePath(targetPosition)
-        if newPath then
-            path = newPath
-            currentObstacleAttempts = 0 -- Reset obstacle counter on successful path
-        else
-            currentObstacleAttempts = currentObstacleAttempts + 1
-            if currentObstacleAttempts >= pathfindingObstacleTolerance then
-                -- Fallback to simple movement if pathfinding keeps failing
-                myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetPosition)
-                humanoid:MoveTo(targetPosition)
-                return
-            end
-        end
-    end
-    
-    -- Follow the computed path
-    if path then
-        followPath(targetPosition)
-    end
 end
 
 -- ✅ Follow & Formation System
@@ -618,7 +588,7 @@ function setupBotFollowSystem()
                     local posisiTarget = formasi[uid]
                     if posisiTarget then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                        moveToTarget(posisiTarget)
+                        followPath(posisiTarget) -- Use pathfinding for formations
                     end
                 else
                     Library:Notify("❌ Target not found!", 3)
@@ -642,11 +612,11 @@ function setupBotFollowSystem()
                     local posisiAwal = myRootPart.Position
                     local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
                     myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    moveToTarget(posisiAbsen)
+                    followPath(posisiAbsen) -- Use pathfinding for absen
                     humanoid.MoveToFinished:Wait()
                     task.wait(1.5)
                     myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    moveToTarget(posisiAwal)
+                    followPath(posisiAwal) -- Use pathfinding to return
                 end)
             end
         end)
@@ -675,6 +645,12 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
+        -- Update path following if we're currently following a path
+        if waypoints and currentWaypointIndex then
+            updatePathFollowing()
+        end
+        
+        -- Handle following logic
         if followAllowed and toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
             if targetHRP then
@@ -683,8 +659,10 @@ function setupBotFollowSystem()
                 
                 local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * settings.followDistance
                 local dist = (myRootPart.Position - followPos).Magnitude
+                
                 if dist > settings.minDistance then
-                    moveToTarget(followPos)
+                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+                    followPath(followPos) -- Use pathfinding for following
                 end
             end
         end
