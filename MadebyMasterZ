@@ -82,7 +82,13 @@ local function moveToTarget(destination)
         for _, waypoint in ipairs(waypoints) do
             if not followAllowed then break end
             humanoid:MoveTo(waypoint.Position)
-            local reached = humanoid.MoveToFinished:Wait(2) -- kasih timeout 2 detik
+
+            -- lompat kalau waypoint butuh lompat
+            if waypoint.Action == Enum.PathWaypointAction.Jump then
+                humanoid.Jump = true
+            end
+
+            local reached = humanoid.MoveToFinished:Wait(2) -- timeout 2 detik
             if not reached then
                 debugPrint("⚠️ Stuck, recomputing path...")
                 isMoving = false
@@ -136,7 +142,8 @@ GroupBox1:AddInput("JarakIkutInput", {
     end,
 })
 
-GroupBox1:AddTextbox("BotIDTextbox", {
+-- ✅ Bot Identity (pakai AddInput, bukan AddTextbox)
+GroupBox1:AddInput("BotIDTextbox", {
     Default = "",
     Text = "Bot Identity",
     Placeholder = "Isi ID bot",
