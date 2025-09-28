@@ -26,23 +26,21 @@ local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 
-local clientName = ""
+local clientName = "FiestaGuardVip"  -- Semua diatur oleh client ini
 local jarakIkut = 5          -- Default follow distance
-local jarakFormasi = 5       -- Formation distance (separate from follow distance)
+local jarakFormasi = 5       -- Formation distance
 local jarakMinimum = 2
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
-local adminName = "bodyguardshoprblx"
-local currentFormation = nil  -- To track which formation is active
+local currentFormation = nil  
 
--- Individual bot settings
 local botSettings = {
-    ["8802945328"] = {followDistance = 5, minDistance = 2}, -- BotID1
-    ["8802949363"] = {followDistance = 5, minDistance = 2}, -- BotID2
-    ["8802939883"] = {followDistance = 5, minDistance = 2}, -- BotID3
-    ["8802998147"] = {followDistance = 5, minDistance = 2}, -- BotID4
-    ["8802991722"] = {followDistance = 5, minDistance = 2}  -- BotID5
+    ["8802945328"] = {followDistance = 5, minDistance = 2},
+    ["8802949363"] = {followDistance = 5, minDistance = 2},
+    ["8802939883"] = {followDistance = 5, minDistance = 2},
+    ["8802998147"] = {followDistance = 5, minDistance = 2},
+    ["8802991722"] = {followDistance = 5, minDistance = 2}
 }
 
 local followConnection = nil
@@ -64,6 +62,7 @@ local function runStopCommand()
     Options.TextboxFormasi2:SetValue("")
     Options.TextboxFormasi3:SetValue("")
     Options.TextboxFormasi4:SetValue("")
+    
     local args = { "leaveSync" }
     pcall(function()
         ReplicatedStorage:WaitForChild("Connections")
@@ -88,9 +87,7 @@ local function restartBot()
     runStopCommand()
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
-    
-    task.wait(0.5) -- Small delay before restarting
-    
+    task.wait(0.5)
     if toggleAktif then
         setupBotFollowSystem()
         Library:Notify("✅ Bot restarted with new client: "..clientName, 5)
@@ -121,26 +118,16 @@ GroupBox1:AddToggle("AktifkanFollow", {
 })
 
 GroupBox1:AddInput("NamaClientInput", {
-    Default = "",
+    Default = clientName,
     Text = "Client Name",
-    Placeholder = "Example: MasterZ_YT",
+    Placeholder = "Example: FiestaGuardVip",
     Callback = function(Value)
         clientName = Value
         print("Client set to:", clientName)
     end,
 })
 
-GroupBox1:AddInput("AdminName", {
-    Default = "bodyguardshoprblx",
-    Text = "Admin Name",
-    Placeholder = "bodyguardshoprblx",
-    Callback = function(Value)
-        adminName = Value
-        print("Admin Name set to:", adminName)
-    end,
-})
-
--- Add Formation Distance Setting
+-- Formasi distance
 GroupBox1:AddInput("JarakFormasiInput", {
     Default = "5",
     Text = "Formation Distance",
@@ -154,82 +141,18 @@ GroupBox1:AddInput("JarakFormasiInput", {
     end,
 })
 
--- ✅ GroupBox3 - Textboxes
+-- ✅ Textboxes
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
-
-GroupBox3:AddInput("TextboxDisplayName", {
-    Default = "",
-    Text = "Target DisplayName",
-    Placeholder = "Empty",
-    Callback = function(Value)
-        print("DisplayName target:", Value)
-    end,
-})
-
-GroupBox3:AddInput("TextboxFormasi1", {
-    Default = "",
-    Text = "Formation 1 Target",
-    Placeholder = "Empty",
-    Callback = function(Value)
-        print("Formation 1 Target:", Value)
-    end,
-})
-
-GroupBox3:AddInput("TextboxFormasi2", {
-    Default = "",
-    Text = "Formation 2 Target",
-    Placeholder = "Empty",
-    Callback = function(Value)
-        print("Formation 2 Target:", Value)
-    end,
-})
-
-GroupBox3:AddInput("TextboxFormasi3", {
-    Default = "",
-    Text = "Formation 3 Target",
-    Placeholder = "Empty",
-    Callback = function(Value)
-        print("Formation 3 Target:", Value)
-    end,
-})
-
-GroupBox3:AddInput("TextboxFormasi4", {
-    Default = "",
-    Text = "Formation 4 Target",
-    Placeholder = "Empty",
-    Callback = function(Value)
-        print("Formation 4 Target:", Value)
-    end,
-})
+GroupBox3:AddInput("TextboxDisplayName", {Default = "", Text = "Target DisplayName", Placeholder = "Empty", Callback = function(Value) end})
+GroupBox3:AddInput("TextboxFormasi1", {Default = "", Text = "Formation 1 Target", Placeholder = "Empty", Callback = function(Value) end})
+GroupBox3:AddInput("TextboxFormasi2", {Default = "", Text = "Formation 2 Target", Placeholder = "Empty", Callback = function(Value) end})
+GroupBox3:AddInput("TextboxFormasi3", {Default = "", Text = "Formation 3 Target", Placeholder = "Empty", Callback = function(Value) end})
+GroupBox3:AddInput("TextboxFormasi4", {Default = "", Text = "Formation 4 Target", Placeholder = "Empty", Callback = function(Value) end})
 
 -- ✅ UI RIGHT - Distance Settings
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Distance Settings")
-
-GroupBox2:AddInput("JarakIkutInput", {
-    Default = "5",
-    Text = "Follow Distance",
-    Placeholder = "Example: 5",
-    Callback = function(Value)
-        local number = tonumber(Value)
-        if number then
-            jarakIkut = number
-            Library:Notify("Follow distance set to: "..number, 3)
-        end
-    end,
-})
-
-GroupBox2:AddInput("JarakMinimumInput", {
-    Default = "2",
-    Text = "Minimum Move Distance",
-    Placeholder = "Example: 2",
-    Callback = function(Value)
-        local number = tonumber(Value)
-        if number then
-            jarakMinimum = number
-            Library:Notify("Minimum distance set to: "..number, 3)
-        end
-    end,
-})
+GroupBox2:AddInput("JarakIkutInput", {Default = "5", Text = "Follow Distance", Placeholder = "Example: 5", Callback = function(Value) local number = tonumber(Value) if number then jarakIkut = number Library:Notify("Follow distance set to: "..number, 3) end end})
+GroupBox2:AddInput("JarakMinimumInput", {Default = "2", Text = "Minimum Move Distance", Placeholder = "Example: 2", Callback = function(Value) local number = tonumber(Value) if number then jarakMinimum = number Library:Notify("Minimum distance set to: "..number, 3) end end})
 
 -- ✅ Helper Functions
 local function updateBotRefs()
@@ -241,21 +164,17 @@ end
 local function fullRefresh()
     runStopCommand()
     task.wait(0.5)
-    
     currentFormasiTarget = nil
     followAllowed = false
-    
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
-    
     if toggleAktif then
         setupBotFollowSystem()
     end
-    
     Library:Notify("✅ System refreshed", 3)
 end
 
--- Function to calculate formation position
+-- Function to calculate formation position (sama seperti skrip asli)
 local function getFormationPosition(targetHRP, formationType)
     local uid = tostring(localPlayer.UserId)
     local formasi = {}
@@ -302,92 +221,11 @@ end
 function setupBotFollowSystem()
     updateBotRefs()
 
-    -- Function to handle admin commands
-    local function handleAdminCommand(player, msg)
-        if player.Name ~= adminName then return false end
-        
-        msg = msg:lower()
-        local currentBotID = tostring(localPlayer.UserId)
-        
-        -- Handle !clientname [username]
-        if msg:match("^!clientname ") then
-            local newName = msg:sub(12):gsub("^%s*(.-)%s*$", "%1")
-            if newName ~= "" then
-                clientName = newName
-                Options.NamaClientInput:SetValue(newName)
-                Library:Notify("Admin changed client name to: "..newName, 5)
-                
-                -- Restart the bot with new client name
-                task.spawn(restartBot)
-                return true
-            else
-                Library:Notify("❌ Client name cannot be empty", 3)
-                return true
-            end
-        end
-        
-        -- Handle !aturjarak commands (only affects follow distance)
-        for i = 1, 5 do
-            if msg:match("^!aturjarak"..i.."%s") then
-                local distance = tonumber(msg:match("%d+$"))
-                if distance and distance > 0 then
-                    local botID = ""
-                    if i == 1 then botID = "8802945328"
-                    elseif i == 2 then botID = "8802949363"
-                    elseif i == 3 then botID = "8802939883"
-                    elseif i == 4 then botID = "8802998147"
-                    elseif i == 5 then botID = "8802991722" end
-                    
-                    botSettings[botID].followDistance = distance
-                    Library:Notify("Admin set BotID"..i.." ("..botID..") follow distance to: "..distance, 5)
-                    
-                    if currentBotID == botID then
-                        jarakIkut = distance
-                        Options.JarakIkutInput:SetValue(tostring(distance))
-                    end
-                    return true
-                else
-                    Library:Notify("❌ Distance must be positive number", 3)
-                    return true
-                end
-            end
-            
-            -- Handle !minjarak commands
-            if msg:match("^!minjarak"..i.."%s") then
-                local minDistance = tonumber(msg:match("%d+$"))
-                if minDistance and minDistance > 0 then
-                    local botID = ""
-                    if i == 1 then botID = "8802945328"
-                    elseif i == 2 then botID = "8802949363"
-                    elseif i == 3 then botID = "8802939883"
-                    elseif i == 4 then botID = "8802998147"
-                    elseif i == 5 then botID = "8802991722" end
-                    
-                    botSettings[botID].minDistance = minDistance
-                    Library:Notify("Admin set BotID"..i.." ("..botID..") min distance to: "..minDistance, 5)
-                    
-                    if currentBotID == botID then
-                        jarakMinimum = minDistance
-                        Options.JarakMinimumInput:SetValue(tostring(minDistance))
-                    end
-                    return true
-                else
-                    Library:Notify("❌ Min distance must be positive number", 3)
-                    return true
-                end
-            end
-        end
-        return false
-    end
-
     local function setupClient(player)
         if player.Name ~= clientName then return end
         client = player
 
         followConnection = player.Chatted:Connect(function(msg)
-            -- Check admin commands first
-            if handleAdminCommand(player, msg) then return end
-            
             msg = msg:lower()
             local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
@@ -400,29 +238,17 @@ function setupBotFollowSystem()
                 followAllowed = false
                 Library:Notify("!gabung command received. Syncing...", 4)
                 local args = { "sync", client.UserId }
-                local success, err = pcall(function()
+                pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
                         :WaitForChild("commandHandler")
                         :InvokeServer(unpack(args))
                 end)
-                if success then
-                    Library:Notify("✅ Bot joined client ID: " .. client.UserId, 3)
-                else
-                    Library:Notify("❌ Sync failed", 3)
-                end
             elseif msg == "!ikuti" then
-                if currentFormation then
-                    -- If in formation mode, keep following the formation
-                    followAllowed = true
-                    Library:Notify("Bot maintaining formation: " .. currentFormation, 3)
-                else
-                    -- Regular follow mode
-                    followAllowed = true
-                    currentFormasiTarget = client
-                    Options.TextboxDisplayName:SetValue("")
-                    Library:Notify("Bot following main client: " .. client.DisplayName, 3)
-                end
+                followAllowed = true
+                currentFormasiTarget = client
+                Options.TextboxDisplayName:SetValue("")
+                Library:Notify("Bot following main client: " .. client.DisplayName, 3)
             elseif msg:match("^!ikuti ") then
                 runStopCommand()
                 local targetDisplayName = msg:sub(8)
@@ -445,115 +271,36 @@ function setupBotFollowSystem()
                 end
             elseif msg == "!pushup" then
                 runStopCommand()
-                local args = {
-                    "playAnimation",
-                    "Push Up"
-                }
-                local success = pcall(function()
+                local args = {"playAnimation", "Push Up"}
+                pcall(function()
                     ReplicatedStorage:WaitForChild("Connections")
                         :WaitForChild("dataProviders")
                         :WaitForChild("animationHandler")
                         :InvokeServer(unpack(args))
                 end)
-                if success then
-                    Library:Notify("✅ Bot doing push up", 3)
-                else
-                    Library:Notify("❌ Failed to do push up", 3)
-                end
             elseif msg:match("^!formasi[1234]") then
                 runStopCommand()
                 local formasiCmd, displayName = msg:match("^!(formasi[1234])%s*(.*)")
                 displayName = displayName and displayName:lower()
-
-                local target = nil
-                if displayName ~= "" then
-                    for _, p in ipairs(Players:GetPlayers()) do
-                        if p.DisplayName:lower() == displayName:lower() then
-                            target = p
-                            currentFormasiTarget = p
-                            break
-                        end
-                    end
-                else
-                    target = client
-                    currentFormasiTarget = client
-                end
-
+                local target = (displayName ~= "") and Players:FindFirstChild(displayName) or client
                 if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = target.Character.HumanoidRootPart
-                    local posisiTarget = getFormationPosition(hrp, formasiCmd)
-                    
+                    currentFormasiTarget = target
+                    local posisiTarget = getFormationPosition(target.Character.HumanoidRootPart, formasiCmd)
                     if posisiTarget then
                         currentFormation = formasiCmd
-                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
+                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, target.Character.HumanoidRootPart.Position)
                         humanoid:MoveTo(posisiTarget)
-                        
-                        -- Set the appropriate textbox
-                        if formasiCmd == "formasi1" then
-                            Options.TextboxFormasi1:SetValue(target.DisplayName)
-                        elseif formasiCmd == "formasi2" then
-                            Options.TextboxFormasi2:SetValue(target.DisplayName)
-                        elseif formasiCmd == "formasi3" then
-                            Options.TextboxFormasi3:SetValue(target.DisplayName)
-                        elseif formasiCmd == "formasi4" then
-                            Options.TextboxFormasi4:SetValue(target.DisplayName)
-                        end
-                        
-                        Library:Notify("✅ Formation set: "..formasiCmd, 3)
                     end
-                else
-                    Library:Notify("❌ Target not found!", 3)
-                    currentFormasiTarget = nil
-                    currentFormation = nil
                 end
-            elseif msg == "!absen" then
-                runStopCommand()
-                local uid = tostring(localPlayer.UserId)
-                local urutanBot = {
-                    ["8802945328"] = 1,
-                    ["8802949363"] = 2,
-                    ["8802939883"] = 3,
-                    ["8802998147"] = 4,
-                    ["8802991722"] = 5,
-                }
-                local giliran = urutanBot[uid]
-                if not giliran then return end
-
-                task.spawn(function()
-                    task.wait((giliran - 1) * 2.5)
-                    local posisiAwal = myRootPart.Position
-                    local posisiAbsen = hrp.Position + hrp.CFrame.LookVector * 3 + Vector3.new(0, 0.1, 0)
-                    myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, hrp.Position)
-                    humanoid:MoveTo(posisiAbsen)
-                    humanoid.MoveToFinished:Wait()
-                    task.wait(1.5)
-                    myRootPart.CFrame = CFrame.lookAt(posisiAbsen, posisiAwal)
-                    humanoid:MoveTo(posisiAwal)
-                end)
             end
         end)
     end
 
-    -- Handle existing admin
     for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name == adminName then
-            player.Chatted:Connect(function(msg)
-                handleAdminCommand(player, msg)
-            end)
-        end
         setupClient(player)
     end
 
-    -- Handle new admin joining
-    Players.PlayerAdded:Connect(function(player)
-        if player.Name == adminName then
-            player.Chatted:Connect(function(msg)
-                handleAdminCommand(player, msg)
-            end)
-        end
-        setupClient(player)
-    end)
-
+    Players.PlayerAdded:Connect(setupClient)
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     loopTask = RunService.Heartbeat:Connect(function()
@@ -565,7 +312,6 @@ function setupBotFollowSystem()
                 
                 if followAllowed then
                     if currentFormation then
-                        -- Maintain formation position
                         local formationPos = getFormationPosition(targetHRP, currentFormation)
                         if formationPos then
                             local dist = (myRootPart.Position - formationPos).Magnitude
@@ -575,7 +321,6 @@ function setupBotFollowSystem()
                             end
                         end
                     else
-                        -- Regular follow mode
                         local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * settings.followDistance
                         local dist = (myRootPart.Position - followPos).Magnitude
                         if dist > settings.minDistance then
