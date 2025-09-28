@@ -34,6 +34,15 @@ local humanoid = nil
 local myRootPart = nil
 local client = nil
 
+-- ✅ Bot Mapping
+local botMapping = {
+    ["8802945328"] = "Bot1 - XBODYGUARDVIP01",
+    ["8802949363"] = "Bot2 - XBODYGUARDVIP02",
+    ["8802939883"] = "Bot3 - XBODYGUARDVIP03",
+    ["8802998147"] = "Bot4 - XBODYGUARDVIP04",
+}
+local botIdentity = botMapping[tostring(localPlayer.UserId)] or "Unknown Bot"
+
 -- ✅ Helper Functions
 local function debugPrint(msg)
     print("[DEBUG]", msg)
@@ -56,6 +65,16 @@ end
 
 -- ✅ UI - Main Tab
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
+
+-- Bot identity textbox (readonly)
+GroupBox1:AddInput("BotIdentity", {
+    Default = botIdentity,
+    Text = "Bot Identity",
+    Placeholder = "Auto-detected bot info",
+    Callback = function(Value)
+        -- readonly, tidak ada perubahan
+    end,
+})
 
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Enable Bot Follow",
