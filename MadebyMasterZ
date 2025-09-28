@@ -19,14 +19,14 @@ local Tabs = {
 -- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local localPlayer = Players.LocalPlayer
+local TextChatService = game:GetService("TextChatService")
 
-local clientName = "FiestaGuardVip"
+local localPlayer = Players.LocalPlayer
+local clientName = "FiestaGuardVip" -- langsung set client name
 local jarakIkut = 5
 local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
-local formationMode = nil -- "follow", "shield", nil
 
 local followConnection = nil
 local loopTask = nil
@@ -56,90 +56,41 @@ local function updateBotRefs()
 end
 
 -- ✅ Reset function
-local function stopFormation()
+local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
-    formationMode = nil
-    debugPrint("Formation stopped")
-    Library:Notify("Bot Formation Stopped", 3)
-end
-
--- ✅ Shield formation
-local function runShieldFormation()
-    if not client or not client.Character then return end
-    local targetHRP = client.Character:FindFirstChild("HumanoidRootPart")
-    if not targetHRP then return end
-
-    -- posisi client
-    local basePos = targetHRP.Position
-    local lookVec = targetHRP.CFrame.LookVector
-
-    -- posisi depan client
-    local frontPos = basePos + lookVec * 5
-
-    -- urutan bot
-    local botOrder = {
-        Vector3.new(-3, 0, 0), -- kiri
-        Vector3.new(0, 0, 0),  -- tengah
-        Vector3.new(3, 0, 0),  -- kanan
-    }
-
-    -- index bot sesuai UserId
-    local myIndex = table.find({
-        "8802945328", -- Bot1
-        "8802949363", -- Bot2
-        "8802939883", -- Bot3
-        "8802998147", -- Bot4
-    }, tostring(localPlayer.UserId))
-
-    if myIndex and myIndex <= #botOrder then
-        local offset = botOrder[myIndex] or Vector3.new(0,0,0)
-        local finalPos = frontPos + offset
-
-        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-        humanoid:MoveTo(finalPos)
-        debugPrint("Shield pos "..tostring(finalPos))
-    end
-end
-
--- ✅ Handle command
-local function handleCommand(msg)
-    msg = msg:lower()
-    if msg:match("^!ikuti") then
-        followAllowed = true
-        formationMode = "follow"
-        currentFormasiTarget = client
-        Library:Notify("Bot following client: " .. client.DisplayName, 3)
-        debugPrint("Follow started")
-    elseif msg:match("^!stop") then
-        stopFormation()
-    elseif msg:match("^!shield") then
-        followAllowed = false
-        formationMode = "shield"
-        currentFormasiTarget = client
-        Library:Notify("Shield formation active!", 3)
-        debugPrint("Shield formation started")
-    end
+    debugPrint("Follow stopped")
+    Library:Notify("Bot Follow Stopped", 3)
 end
 
 -- ✅ UI - Main Tab
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
+-- Bot identity textbox (readonly)
+GroupBox1:AddInput("BotIdentity", {
+    Default = botIdentity,
+    Text = "Bot Identity",
+    Placeholder = "Auto-detected bot info",
+    Callback = function(Value)
+        -- readonly, tidak ada perubahan
+    end,
+})
+
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Enable Bot Follow",
     Default = false,
-    Tooltip = "Enable to accept commands (!ikuti, !shield, !stop)",
+    Tooltip = "Enable to accept !ikuti commands",
     Callback = function(Value)
         toggleAktif = Value
         debugPrint("ToggleAktif set to: "..tostring(Value))
         if Value then
-            Library:Notify("Bot Control Enabled", 3)
+            Library:Notify("Bot Follow Enabled", 3)
             if followConnection then followConnection:Disconnect() end
             if loopTask then loopTask:Disconnect() end
-            setupBotSystem()
+            setupBotFollowSystem()
         else
-            Library:Notify("Bot Control Disabled", 3)
-            stopFormation()
+            Library:Notify("Bot Follow Disabled", 3)
+            runStopCommand()
             if loopTask then loopTask:Disconnect() end
             if followConnection then followConnection:Disconnect() end
         end
@@ -147,7 +98,7 @@ GroupBox1:AddToggle("AktifkanFollow", {
 })
 
 GroupBox1:AddInput("JarakIkutInput", {
-    Default = tostring(jarakIkut),
+    Default = "5",
     Text = "Follow Distance",
     Placeholder = "Example: 5",
     Callback = function(Value)
@@ -160,51 +111,78 @@ GroupBox1:AddInput("JarakIkutInput", {
     end,
 })
 
-GroupBox1:AddInput("BotIdentity", {
-    Default = botIdentity,
-    Text = "Bot Identity",
-    Placeholder = "Auto-detected bot info",
-    Callback = function(Value) end, -- readonly
-})
-
--- ✅ Main System
-function setupBotSystem()
+-- ✅ Follow System
+function setupBotFollowSystem()
     updateBotRefs()
 
+    local function handleCommand(msg)
+        msg = msg:lower()
+        if msg:match("^!ikuti") then
+            followAllowed = true
+            currentFormasiTarget = client
+            Options.TextboxDisplayName:SetValue("")
+            Library:Notify("Bot following main client: " .. client.DisplayName, 3)
+            debugPrint("Follow started for "..client.DisplayName)
+        elseif msg:match("^!stop") then
+            runStopCommand()
+        end
+    end
+
     local function setupClient(player)
-        if player.Name ~= clientName then return end
+        if player.Name ~= clientName then
+            debugPrint("Player "..player.Name.." is not the client")
+            return
+        end
         client = player
         debugPrint("Client "..player.Name.." setup complete")
 
-        followConnection = player.Chatted:Connect(function(msg)
-            local ok, err = pcall(function()
+        -- ✅ Chat Listener (TextChatService baru)
+        if TextChatService and TextChatService.TextChannels then
+            local generalChannel = TextChatService.TextChannels.RBXGeneral
+            if generalChannel then
+                generalChannel.OnIncomingMessage = function(message)
+                    local senderUserId = message.TextSource and message.TextSource.UserId
+                    local sender = senderUserId and Players:GetPlayerByUserId(senderUserId)
+                    if sender and sender == client then
+                        debugPrint("Received chat from "..sender.Name..": "..message.Text)
+                        handleCommand(message.Text)
+                    end
+                end
+            end
+        else
+            -- ✅ Fallback (Player.Chatted lama)
+            followConnection = player.Chatted:Connect(function(msg)
+                debugPrint("Received chat from "..player.Name..": "..msg)
                 handleCommand(msg)
             end)
-            if not ok then
-                debugPrint("Error handling chat: "..err)
-            end
-        end)
+        end
     end
 
+    -- Setup existing players
     for _, player in ipairs(Players:GetPlayers()) do
         setupClient(player)
     end
 
+    -- Setup new players
     Players.PlayerAdded:Connect(setupClient)
+
+    -- Update bot references on respawn
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
+    -- Heartbeat loop
     loopTask = RunService.Heartbeat:Connect(function()
         if toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local ok, err = pcall(function()
                 local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
-                if not targetHRP then return end
-
-                if formationMode == "follow" and followAllowed then
+                if targetHRP and followAllowed then
                     local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
-                    humanoid:MoveTo(followPos)
-
-                elseif formationMode == "shield" then
-                    runShieldFormation()
+                    local dist = (myRootPart.Position - followPos).Magnitude
+                    debugPrint("Distance to target: "..dist)
+                    if dist > 0.1 then
+                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
+                        humanoid:MoveTo(followPos)
+                        debugPrint("Moving to "..tostring(followPos))
+                    end
                 end
             end)
             if not ok then
