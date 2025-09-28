@@ -6,7 +6,7 @@ local Options = Library.Options
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v11.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -19,10 +19,11 @@ local Tabs = {
 -- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TextChatService = game:GetService("TextChatService")
 local PathfindingService = game:GetService("PathfindingService")
 
 local localPlayer = Players.LocalPlayer
-local clientName = "FiestaGuardVip"
+local clientName = "FiestaGuardVip" -- langsung set client name
 local jarakIkut = 5
 local toggleAktif = false
 local followAllowed = false
@@ -33,15 +34,15 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
-local isMoving = false
 
--- ✅ Data Bot
-local botList = {
-    ["8802945328"] = "XBODYGUARDVIP01",
-    ["8802949363"] = "XBODYGUARDVIP02",
-    ["8802939883"] = "XBODYGUARDVIP03",
-    ["8802998147"] = "XBODYGUARDVIP04",
+-- ✅ Bot Mapping
+local botMapping = {
+    ["8802945328"] = "Bot1 - XBODYGUARDVIP01",
+    ["8802949363"] = "Bot2 - XBODYGUARDVIP02",
+    ["8802939883"] = "Bot3 - XBODYGUARDVIP03",
+    ["8802998147"] = "Bot4 - XBODYGUARDVIP04",
 }
+local botIdentity = botMapping[tostring(localPlayer.UserId)] or "Unknown Bot"
 
 -- ✅ Helper Functions
 local function debugPrint(msg)
@@ -55,57 +56,74 @@ local function updateBotRefs()
     debugPrint("Bot references updated")
 end
 
+-- ✅ Reset function
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
     debugPrint("Follow stopped")
+    Library:Notify("Bot Follow Stopped", 3)
 end
 
--- ✅ Pathfinding Function
-local function moveToTarget(destination)
-    if not humanoid or not myRootPart then return end
-    if isMoving then return end
-    isMoving = true
-
+-- ✅ Pathfinding Move
+local function moveToTarget(targetPos)
     local path = PathfindingService:CreatePath({
         AgentRadius = 2,
         AgentHeight = 5,
         AgentCanJump = true,
-        AgentJumpHeight = 10,
+        AgentJumpHeight = 8,
         AgentMaxSlope = 45,
     })
 
-    path:ComputeAsync(myRootPart.Position, destination)
+    path:ComputeAsync(myRootPart.Position, targetPos)
 
-    if path.Status == Enum.PathStatus.Success then
-        local waypoints = path:GetWaypoints()
-        for _, waypoint in ipairs(waypoints) do
-            if not followAllowed then break end
+    if path.Status == Enum.PathStatus.Complete then
+        for _, waypoint in ipairs(path:GetWaypoints()) do
             humanoid:MoveTo(waypoint.Position)
-
-            -- lompat kalau waypoint butuh lompat
             if waypoint.Action == Enum.PathWaypointAction.Jump then
                 humanoid.Jump = true
             end
-
-            local reached = humanoid.MoveToFinished:Wait(2) -- timeout 2 detik
-            if not reached then
-                debugPrint("⚠️ Stuck, recomputing path...")
-                isMoving = false
-                moveToTarget(destination) -- coba ulang
-                return
-            end
+            humanoid.MoveToFinished:Wait(1.5)
         end
     else
-        debugPrint("⚠️ Path failed, moving directly")
-        humanoid:MoveTo(destination)
+        debugPrint("Path blocked or failed")
+    end
+end
+
+-- ✅ Anti-Stuck System
+local lastPos = nil
+local stuckTime = 0
+
+local function checkStuck(dt)
+    if not myRootPart then return end
+    if not lastPos then lastPos = myRootPart.Position return end
+
+    local moved = (myRootPart.Position - lastPos).Magnitude
+    if moved < 0.5 then
+        stuckTime += dt
+        if stuckTime > 2 then
+            humanoid.Jump = true
+            debugPrint("Bot stuck -> auto jump")
+            stuckTime = 0
+        end
+    else
+        stuckTime = 0
     end
 
-    isMoving = false
+    lastPos = myRootPart.Position
 end
 
 -- ✅ UI - Main Tab
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
+
+-- Bot identity textbox (readonly)
+GroupBox1:AddInput("BotIdentity", {
+    Default = botIdentity,
+    Text = "Bot Identity",
+    Placeholder = "Auto-detected bot info",
+    Callback = function(Value)
+        -- readonly, tidak ada perubahan
+    end,
+})
 
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Enable Bot Follow",
@@ -142,25 +160,22 @@ GroupBox1:AddInput("JarakIkutInput", {
     end,
 })
 
--- ✅ Bot Identity (pakai AddInput, bukan AddTextbox)
-GroupBox1:AddInput("BotIDTextbox", {
-    Default = "",
-    Text = "Bot Identity",
-    Placeholder = "Isi ID bot",
-    Callback = function(Value)
-        if botList[Value] then
-            debugPrint("Bot terdeteksi: "..botList[Value])
-            Library:Notify("Bot ini: "..botList[Value], 3)
-        else
-            debugPrint("Bot ID tidak dikenali")
-            Library:Notify("Bot ID tidak dikenali", 3)
-        end
-    end,
-})
-
 -- ✅ Follow System
 function setupBotFollowSystem()
     updateBotRefs()
+
+    local function handleCommand(msg)
+        msg = msg:lower()
+        if msg:match("^!ikuti") then
+            followAllowed = true
+            currentFormasiTarget = client
+            Options.TextboxDisplayName:SetValue("")
+            Library:Notify("Bot following main client: " .. client.DisplayName, 3)
+            debugPrint("Follow started for "..client.DisplayName)
+        elseif msg:match("^!stop") then
+            runStopCommand()
+        end
+    end
 
     local function setupClient(player)
         if player.Name ~= clientName then
@@ -170,29 +185,26 @@ function setupBotFollowSystem()
         client = player
         debugPrint("Client "..player.Name.." setup complete")
 
-        followConnection = player.Chatted:Connect(function(msg)
-            local ok, err = pcall(function()
-                msg = msg:lower()
-                debugPrint("Received chat from "..player.Name..": "..msg)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then
-                    debugPrint("HumanoidRootPart not found for "..player.Name)
-                    return
+        -- ✅ Chat Listener (TextChatService baru)
+        if TextChatService and TextChatService.TextChannels then
+            local generalChannel = TextChatService.TextChannels.RBXGeneral
+            if generalChannel then
+                generalChannel.OnIncomingMessage = function(message)
+                    local senderUserId = message.TextSource and message.TextSource.UserId
+                    local sender = senderUserId and Players:GetPlayerByUserId(senderUserId)
+                    if sender and sender == client then
+                        debugPrint("Received chat from "..sender.Name..": "..message.Text)
+                        handleCommand(message.Text)
+                    end
                 end
-
-                if msg:match("^!ikuti") then
-                    followAllowed = true
-                    currentFormasiTarget = client
-                    Library:Notify("Bot following main client: " .. client.DisplayName, 3)
-                    debugPrint("Follow started for "..client.DisplayName)
-                elseif msg:match("^!stop") then
-                    runStopCommand()
-                end
-            end)
-            if not ok then
-                debugPrint("Error handling chat: "..err)
             end
-        end)
+        else
+            -- ✅ Fallback (Player.Chatted lama)
+            followConnection = player.Chatted:Connect(function(msg)
+                debugPrint("Received chat from "..player.Name..": "..msg)
+                handleCommand(msg)
+            end)
+        end
     end
 
     -- Setup existing players
@@ -207,13 +219,19 @@ function setupBotFollowSystem()
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
     -- Heartbeat loop
-    loopTask = RunService.Heartbeat:Connect(function()
+    loopTask = RunService.Heartbeat:Connect(function(dt)
+        checkStuck(dt)
+
         if toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local ok, err = pcall(function()
                 local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
                 if targetHRP and followAllowed then
                     local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
-                    moveToTarget(followPos) -- pakai pathfinding
+                    local dist = (myRootPart.Position - followPos).Magnitude
+                    if dist > 2 then -- lebih longgar untuk pathfinding
+                        debugPrint("Pathfinding to target, distance: "..dist)
+                        moveToTarget(followPos)
+                    end
                 end
             end)
             if not ok then
