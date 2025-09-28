@@ -12,14 +12,13 @@ if not success or not Library then
 end
 
 local Options = Library.Options
-local Toggles = Library.Toggles
 
 Library.ForceCheckbox = false
 Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v21.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -32,7 +31,6 @@ local Tabs = {
 -- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local localPlayer = Players.LocalPlayer
 
 local clientName = "FiestaGuardVip"
@@ -43,15 +41,6 @@ local toggleAktif = false
 local followAllowed = false
 local currentFormasiTarget = nil
 local currentFormation = nil
-
--- Individual bot settings
-local botSettings = {
-    ["8802945328"] = {followDistance = 5, minDistance = 2},
-    ["8802949363"] = {followDistance = 5, minDistance = 2},
-    ["8802939883"] = {followDistance = 5, minDistance = 2},
-    ["8802998147"] = {followDistance = 5, minDistance = 2},
-    ["8802991722"] = {followDistance = 5, minDistance = 2}
-}
 
 local followConnection = nil
 local loopTask = nil
@@ -85,7 +74,7 @@ local function restartBot()
     end
 end
 
--- ✅ UI LEFT - Main Tab
+-- ✅ UI Setup
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
 GroupBox1:AddToggle("AktifkanFollow", {
@@ -119,45 +108,30 @@ GroupBox1:AddInput("JarakFormasiInput", {
     end,
 })
 
--- ✅ GroupBox3 - Textboxes
+-- ✅ Textboxes
 local GroupBox3 = Tabs.Main:AddLeftGroupbox("Textbox")
+GroupBox3:AddInput("TextboxDisplayName", {Default = "", Text = "Target DisplayName", Placeholder = "Empty", Callback = function() end})
+GroupBox3:AddInput("TextboxFormasi1", {Default = "", Text = "Formation 1 Target", Placeholder = "Empty", Callback = function() end})
+GroupBox3:AddInput("TextboxFormasi2", {Default = "", Text = "Formation 2 Target", Placeholder = "Empty", Callback = function() end})
 
-GroupBox3:AddInput("TextboxDisplayName", {
-    Default = "",
-    Text = "Target DisplayName",
-    Placeholder = "Empty",
-    Callback = function() end,
-})
-
-GroupBox3:AddInput("TextboxFormasi1", { Default = "", Text = "Formation 1 Target", Placeholder = "Empty", Callback = function() end })
-GroupBox3:AddInput("TextboxFormasi2", { Default = "", Text = "Formation 2 Target", Placeholder = "Empty", Callback = function() end })
-
--- ✅ UI RIGHT - Distance Settings
+-- ✅ Distance Settings
 local GroupBox2 = Tabs.Main:AddRightGroupbox("Distance Settings")
-
 GroupBox2:AddInput("JarakIkutInput", {
     Default = "5",
     Text = "Follow Distance",
     Placeholder = "Example: 5",
     Callback = function(Value)
         local number = tonumber(Value)
-        if number then
-            jarakIkut = number
-            Library:Notify("Follow distance set to: "..number, 3)
-        end
+        if number then jarakIkut = number Library:Notify("Follow distance set to: "..number, 3) end
     end,
 })
-
 GroupBox2:AddInput("JarakMinimumInput", {
     Default = "2",
     Text = "Minimum Move Distance",
     Placeholder = "Example: 2",
     Callback = function(Value)
         local number = tonumber(Value)
-        if number then
-            jarakMinimum = number
-            Library:Notify("Minimum distance set to: "..number, 3)
-        end
+        if number then jarakMinimum = number Library:Notify("Minimum distance set to: "..number, 3) end
     end,
 })
 
@@ -166,6 +140,7 @@ local function updateBotRefs()
     local character = localPlayer.Character or localPlayer.CharacterAdded:Wait()
     humanoid = character:WaitForChild("Humanoid")
     myRootPart = character:WaitForChild("HumanoidRootPart")
+    print("DEBUG: Humanoid and RootPart ready")
 end
 
 local function fullRefresh()
@@ -173,16 +148,13 @@ local function fullRefresh()
     task.wait(0.5)
     if followConnection then followConnection:Disconnect() end
     if loopTask then loopTask:Disconnect() end
-    if toggleAktif then
-        setupBotFollowSystem()
-    end
+    if toggleAktif then setupBotFollowSystem() end
     Library:Notify("✅ System refreshed", 3)
 end
 
 local function getFormationPosition(targetHRP, formationType)
     local uid = tostring(localPlayer.UserId)
     local formasi = {}
-    
     if formationType == "formasi1" then
         formasi = {
             ["8802945328"] = targetHRP.Position + targetHRP.CFrame.LookVector * jarakFormasi,
@@ -201,68 +173,72 @@ local function getFormationPosition(targetHRP, formationType)
             ["8802991722"] = targetHRP.Position
         }
     end
-    
     return formasi[uid]
 end
 
--- ✅ Follow & Formation System
+-- ✅ Setup Follow System
 function setupBotFollowSystem()
     updateBotRefs()
 
-    local function setupClient(player)
-        if player.Name ~= clientName then return end
-        client = player
-
-        followConnection = player.Chatted:Connect(function(msg)
-            msg = msg:lower()
-            local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-
-            if msg == "!stop" then
-                runStopCommand()
-            elseif msg == "!refresh" then
-                fullRefresh()
-            elseif msg == "!ikuti" then
-                followAllowed = true
-                currentFormasiTarget = client
-                Options.TextboxDisplayName:SetValue("")
-                Library:Notify("Bot following main client: "..client.DisplayName, 3)
-            elseif msg:match("^!formasi[12]") then
-                runStopCommand()
-                local formasiCmd = msg:match("^!(formasi[12])")
-                currentFormasiTarget = client
-                local pos = getFormationPosition(hrp, formasiCmd)
-                if pos then
-                    currentFormation = formasiCmd
-                    humanoid:MoveTo(pos)
-                    if formasiCmd == "formasi1" then Options.TextboxFormasi1:SetValue(client.DisplayName)
-                    else Options.TextboxFormasi2:SetValue(client.DisplayName) end
-                    Library:Notify("✅ Formation set: "..formasiCmd, 3)
-                end
-            end
-        end)
+    -- Wait until client joins
+    local function waitForClient(name)
+        local p = Players:FindFirstChild(name)
+        if not p then
+            repeat task.wait(0.5) p = Players:FindFirstChild(name) until p
+        end
+        return p
     end
 
-    for _, player in ipairs(Players:GetPlayers()) do setupClient(player) end
-    Players.PlayerAdded:Connect(setupClient)
-    localPlayer.CharacterAdded:Connect(updateBotRefs)
+    client = waitForClient(clientName)
 
+    -- Connect Chatted
+    followConnection = client.Chatted:Connect(function(msg)
+        msg = msg:lower()
+        local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
+        if not hrp then return end
+
+        if msg == "!stop" then
+            runStopCommand()
+        elseif msg == "!refresh" then
+            fullRefresh()
+        elseif msg == "!ikuti" then
+            if client and client.Character and client.Character:FindFirstChild("HumanoidRootPart") then
+                followAllowed = true
+                currentFormasiTarget = client
+                print("DEBUG: !ikuti received, following client")
+                Options.TextboxDisplayName:SetValue(client.DisplayName)
+                Library:Notify("Bot following main client: "..client.DisplayName, 3)
+            end
+        elseif msg:match("^!formasi[12]") then
+            runStopCommand()
+            local formasiCmd = msg:match("^!(formasi[12])")
+            currentFormasiTarget = client
+            local pos = getFormationPosition(hrp, formasiCmd)
+            if pos then
+                currentFormation = formasiCmd
+                humanoid:MoveTo(pos)
+                if formasiCmd == "formasi1" then Options.TextboxFormasi1:SetValue(client.DisplayName)
+                else Options.TextboxFormasi2:SetValue(client.DisplayName) end
+                Library:Notify("✅ Formation set: "..formasiCmd, 3)
+            end
+        end
+    end)
+
+    -- Heartbeat Loop
     loopTask = RunService.Heartbeat:Connect(function()
-        if toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
+        if toggleAktif then print("DEBUG: Heartbeat running") end
+        if toggleAktif and followAllowed and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
-            if targetHRP and followAllowed then
-                local currentBotID = tostring(localPlayer.UserId)
-                local settings = botSettings[currentBotID] or {followDistance = jarakIkut, minDistance = jarakMinimum}
-                
+            if targetHRP then
                 if currentFormation then
-                    local formationPos = getFormationPosition(targetHRP, currentFormation)
-                    if formationPos and (myRootPart.Position - formationPos).Magnitude > settings.minDistance then
+                    local pos = getFormationPosition(targetHRP, currentFormation)
+                    if pos and (myRootPart.Position - pos).Magnitude > jarakMinimum then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                        humanoid:MoveTo(formationPos)
+                        humanoid:MoveTo(pos)
                     end
                 else
-                    local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * settings.followDistance
-                    if (myRootPart.Position - followPos).Magnitude > settings.minDistance then
+                    local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
+                    if (myRootPart.Position - followPos).Magnitude > jarakMinimum then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                         humanoid:MoveTo(followPos)
                     end
@@ -270,4 +246,6 @@ function setupBotFollowSystem()
             end
         end
     end)
+
+    localPlayer.CharacterAdded:Connect(updateBotRefs)
 end
