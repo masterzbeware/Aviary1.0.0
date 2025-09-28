@@ -19,8 +19,9 @@ local Tabs = {
 -- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local localPlayer = Players.LocalPlayer
+local TextChatService = game:GetService("TextChatService")
 
+local localPlayer = Players.LocalPlayer
 local clientName = "FiestaGuardVip" -- langsung set client name
 local jarakIkut = 5
 local toggleAktif = false
@@ -50,6 +51,7 @@ local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
     debugPrint("Follow stopped")
+    Library:Notify("Bot Follow Stopped", 3)
 end
 
 -- ✅ UI - Main Tab
@@ -94,6 +96,19 @@ GroupBox1:AddInput("JarakIkutInput", {
 function setupBotFollowSystem()
     updateBotRefs()
 
+    local function handleCommand(msg)
+        msg = msg:lower()
+        if msg:match("^!ikuti") then
+            followAllowed = true
+            currentFormasiTarget = client
+            Options.TextboxDisplayName:SetValue("")
+            Library:Notify("Bot following main client: " .. client.DisplayName, 3)
+            debugPrint("Follow started for "..client.DisplayName)
+        elseif msg:match("^!stop") then
+            runStopCommand()
+        end
+    end
+
     local function setupClient(player)
         if player.Name ~= clientName then
             debugPrint("Player "..player.Name.." is not the client")
@@ -102,28 +117,25 @@ function setupBotFollowSystem()
         client = player
         debugPrint("Client "..player.Name.." setup complete")
 
-        followConnection = player.Chatted:Connect(function(msg)
-            local ok, err = pcall(function()
-                msg = msg:lower()
-                debugPrint("Received chat from "..player.Name..": "..msg)
-                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
-                if not hrp then
-                    debugPrint("HumanoidRootPart not found for "..player.Name)
-                    return
+        -- ✅ Chat Listener (TextChatService baru)
+        if TextChatService then
+            local generalChannel = TextChatService.TextChannels and TextChatService.TextChannels.RBXGeneral
+            if generalChannel then
+                generalChannel.OnIncomingMessage = function(message)
+                    local sender = message.TextSource and message.TextSource.Player
+                    if sender and sender == client then
+                        debugPrint("Received chat from "..sender.Name..": "..message.Text)
+                        handleCommand(message.Text)
+                    end
                 end
-
-                if msg:match("^!ikuti") then
-                    followAllowed = true
-                    currentFormasiTarget = client
-                    Options.TextboxDisplayName:SetValue("")
-                    Library:Notify("Bot following main client: " .. client.DisplayName, 3)
-                    debugPrint("Follow started for "..client.DisplayName)
-                end
-            end)
-            if not ok then
-                debugPrint("Error handling chat: "..err)
             end
-        end)
+        else
+            -- ✅ Fallback (Player.Chatted lama)
+            followConnection = player.Chatted:Connect(function(msg)
+                debugPrint("Received chat from "..player.Name..": "..msg)
+                handleCommand(msg)
+            end)
+        end
     end
 
     -- Setup existing players
@@ -146,7 +158,7 @@ function setupBotFollowSystem()
                     local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                     local dist = (myRootPart.Position - followPos).Magnitude
                     debugPrint("Distance to target: "..dist)
-                    if dist > 0.1 then  -- lebih sensitif
+                    if dist > 0.1 then
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                         humanoid:MoveTo(followPos)
                         debugPrint("Moving to "..tostring(followPos))
