@@ -82,7 +82,7 @@ local function moveToTarget(destination)
 
     path:ComputeAsync(myRootPart.Position, destination)
 
-    if path.Status == Enum.PathStatus.Complete then
+    if path.Status == Enum.PathStatus.Success then
         local waypoints = path:GetWaypoints()
         for _, waypoint in ipairs(waypoints) do
             humanoid:MoveTo(waypoint.Position)
