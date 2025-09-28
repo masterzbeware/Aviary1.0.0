@@ -6,7 +6,7 @@ local Options = Library.Options
 
 local Window = Library:CreateWindow({
     Title = "Made by MasterZ",
-    Footer = "v2.0.0",
+    Footer = "v1.0.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
@@ -21,7 +21,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local localPlayer = Players.LocalPlayer
 
-local clientName = ""
+local clientName = "FiestaGuardVip" -- langsung set client name
 local jarakIkut = 5
 local toggleAktif = false
 local followAllowed = false
@@ -76,16 +76,6 @@ GroupBox1:AddToggle("AktifkanFollow", {
     end,
 })
 
-GroupBox1:AddInput("NamaClientInput", {
-    Default = "",
-    Text = "Client Name",
-    Placeholder = "Example: MasterZ_YT",
-    Callback = function(Value)
-        clientName = Value
-        debugPrint("Client set to: "..clientName)
-    end,
-})
-
 GroupBox1:AddInput("JarakIkutInput", {
     Default = "5",
     Text = "Follow Distance",
@@ -136,13 +126,18 @@ function setupBotFollowSystem()
         end)
     end
 
+    -- Setup existing players
     for _, player in ipairs(Players:GetPlayers()) do
         setupClient(player)
     end
 
+    -- Setup new players
     Players.PlayerAdded:Connect(setupClient)
+
+    -- Update bot references on respawn
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
+    -- Heartbeat loop
     loopTask = RunService.Heartbeat:Connect(function()
         if toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
             local ok, err = pcall(function()
@@ -151,7 +146,7 @@ function setupBotFollowSystem()
                     local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                     local dist = (myRootPart.Position - followPos).Magnitude
                     debugPrint("Distance to target: "..dist)
-                    if dist > 2 then
+                    if dist > 0.1 then  -- lebih sensitif
                         myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
                         humanoid:MoveTo(followPos)
                         debugPrint("Moving to "..tostring(followPos))
