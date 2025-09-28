@@ -19,11 +19,11 @@ local Tabs = {
 -- ✅ Global Variables
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TextChatService = game:GetService("TextChatService")
 local PathfindingService = game:GetService("PathfindingService")
 
 local localPlayer = Players.LocalPlayer
-local clientName = "FiestaGuardVip" -- langsung set client name
+
+local clientName = "FiestaGuardVip" -- client utama
 local jarakIkut = 5
 local toggleAktif = false
 local followAllowed = false
@@ -34,6 +34,8 @@ local loopTask = nil
 local humanoid = nil
 local myRootPart = nil
 local client = nil
+local currentPath = nil
+local lastPathTime = 0
 
 -- ✅ Bot Mapping
 local botMapping = {
@@ -42,6 +44,7 @@ local botMapping = {
     ["8802939883"] = "Bot3 - XBODYGUARDVIP03",
     ["8802998147"] = "Bot4 - XBODYGUARDVIP04",
 }
+
 local botIdentity = botMapping[tostring(localPlayer.UserId)] or "Unknown Bot"
 
 -- ✅ Helper Functions
@@ -61,70 +64,12 @@ local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
     debugPrint("Follow stopped")
-    Library:Notify("Bot Follow Stopped", 3)
-end
-
--- ✅ Pathfinding Move
-local function moveToTarget(targetPos)
-    local path = PathfindingService:CreatePath({
-        AgentRadius = 2,
-        AgentHeight = 5,
-        AgentCanJump = true,
-        AgentJumpHeight = 8,
-        AgentMaxSlope = 45,
-    })
-
-    path:ComputeAsync(myRootPart.Position, targetPos)
-
-    if path.Status == Enum.PathStatus.Complete then
-        for _, waypoint in ipairs(path:GetWaypoints()) do
-            humanoid:MoveTo(waypoint.Position)
-            if waypoint.Action == Enum.PathWaypointAction.Jump then
-                humanoid.Jump = true
-            end
-            humanoid.MoveToFinished:Wait(1.5)
-        end
-    else
-        debugPrint("Path blocked or failed")
-    end
-end
-
--- ✅ Anti-Stuck System
-local lastPos = nil
-local stuckTime = 0
-
-local function checkStuck(dt)
-    if not myRootPart then return end
-    if not lastPos then lastPos = myRootPart.Position return end
-
-    local moved = (myRootPart.Position - lastPos).Magnitude
-    if moved < 0.5 then
-        stuckTime += dt
-        if stuckTime > 2 then
-            humanoid.Jump = true
-            debugPrint("Bot stuck -> auto jump")
-            stuckTime = 0
-        end
-    else
-        stuckTime = 0
-    end
-
-    lastPos = myRootPart.Position
 end
 
 -- ✅ UI - Main Tab
 local GroupBox1 = Tabs.Main:AddLeftGroupbox("Main Options")
 
--- Bot identity textbox (readonly)
-GroupBox1:AddInput("BotIdentity", {
-    Default = botIdentity,
-    Text = "Bot Identity",
-    Placeholder = "Auto-detected bot info",
-    Callback = function(Value)
-        -- readonly, tidak ada perubahan
-    end,
-})
-
+-- Toggle utama
 GroupBox1:AddToggle("AktifkanFollow", {
     Text = "Enable Bot Follow",
     Default = false,
@@ -146,6 +91,7 @@ GroupBox1:AddToggle("AktifkanFollow", {
     end,
 })
 
+-- Input jarak ikut
 GroupBox1:AddInput("JarakIkutInput", {
     Default = "5",
     Text = "Follow Distance",
@@ -160,22 +106,19 @@ GroupBox1:AddInput("JarakIkutInput", {
     end,
 })
 
+-- Textbox Bot Identity
+GroupBox1:AddInput("BotIdentity", {
+    Default = botIdentity,
+    Text = "Bot Identity",
+    Placeholder = "Auto-detected bot info",
+    Callback = function(Value)
+        -- readonly (biar ga berubah manual)
+    end,
+})
+
 -- ✅ Follow System
 function setupBotFollowSystem()
     updateBotRefs()
-
-    local function handleCommand(msg)
-        msg = msg:lower()
-        if msg:match("^!ikuti") then
-            followAllowed = true
-            currentFormasiTarget = client
-            Options.TextboxDisplayName:SetValue("")
-            Library:Notify("Bot following main client: " .. client.DisplayName, 3)
-            debugPrint("Follow started for "..client.DisplayName)
-        elseif msg:match("^!stop") then
-            runStopCommand()
-        end
-    end
 
     local function setupClient(player)
         if player.Name ~= clientName then
@@ -185,26 +128,27 @@ function setupBotFollowSystem()
         client = player
         debugPrint("Client "..player.Name.." setup complete")
 
-        -- ✅ Chat Listener (TextChatService baru)
-        if TextChatService and TextChatService.TextChannels then
-            local generalChannel = TextChatService.TextChannels.RBXGeneral
-            if generalChannel then
-                generalChannel.OnIncomingMessage = function(message)
-                    local senderUserId = message.TextSource and message.TextSource.UserId
-                    local sender = senderUserId and Players:GetPlayerByUserId(senderUserId)
-                    if sender and sender == client then
-                        debugPrint("Received chat from "..sender.Name..": "..message.Text)
-                        handleCommand(message.Text)
-                    end
-                end
-            end
-        else
-            -- ✅ Fallback (Player.Chatted lama)
-            followConnection = player.Chatted:Connect(function(msg)
+        followConnection = player.Chatted:Connect(function(msg)
+            local ok, err = pcall(function()
+                msg = msg:lower()
                 debugPrint("Received chat from "..player.Name..": "..msg)
-                handleCommand(msg)
+                local hrp = client.Character and client.Character:FindFirstChild("HumanoidRootPart")
+                if not hrp then
+                    debugPrint("HumanoidRootPart not found for "..player.Name)
+                    return
+                end
+
+                if msg:match("^!ikuti") then
+                    followAllowed = true
+                    currentFormasiTarget = client
+                    Library:Notify("Bot following main client: " .. client.DisplayName, 3)
+                    debugPrint("Follow started for "..client.DisplayName)
+                end
             end)
-        end
+            if not ok then
+                debugPrint("Error handling chat: "..err)
+            end
+        end)
     end
 
     -- Setup existing players
@@ -218,24 +162,45 @@ function setupBotFollowSystem()
     -- Update bot references on respawn
     localPlayer.CharacterAdded:Connect(updateBotRefs)
 
-    -- Heartbeat loop
-    loopTask = RunService.Heartbeat:Connect(function(dt)
-        checkStuck(dt)
-
+    -- Heartbeat loop (Pathfinding)
+    loopTask = RunService.Heartbeat:Connect(function()
         if toggleAktif and currentFormasiTarget and currentFormasiTarget.Character and humanoid and myRootPart then
-            local ok, err = pcall(function()
-                local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
-                if targetHRP and followAllowed then
-                    local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
-                    local dist = (myRootPart.Position - followPos).Magnitude
-                    if dist > 2 then -- lebih longgar untuk pathfinding
-                        debugPrint("Pathfinding to target, distance: "..dist)
-                        moveToTarget(followPos)
+            local targetHRP = currentFormasiTarget.Character:FindFirstChild("HumanoidRootPart")
+            if targetHRP and followAllowed then
+                local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
+                local dist = (myRootPart.Position - followPos).Magnitude
+
+                if dist > 3 then
+                    -- hitung ulang path tiap 1 detik
+                    if tick() - lastPathTime > 1 then
+                        local path = PathfindingService:CreatePath({
+                            AgentRadius = 2,
+                            AgentHeight = 5,
+                            AgentCanJump = true,
+                            AgentJumpHeight = 10,
+                            AgentMaxSlope = 45,
+                        })
+
+                        path:ComputeAsync(myRootPart.Position, followPos)
+                        currentPath = path
+                        lastPathTime = tick()
+                    end
+
+                    -- jalani path
+                    if currentPath and currentPath.Status == Enum.PathStatus.Complete then
+                        local waypoints = currentPath:GetWaypoints()
+                        for _, waypoint in ipairs(waypoints) do
+                            humanoid:MoveTo(waypoint.Position)
+                            if waypoint.Action == Enum.PathWaypointAction.Jump then
+                                humanoid.Jump = true
+                            end
+                            humanoid.MoveToFinished:Wait()
+                        end
+                    else
+                        -- fallback kalau path gagal
+                        humanoid:MoveTo(followPos)
                     end
                 end
-            end)
-            if not ok then
-                debugPrint("Error in Heartbeat: "..err)
             end
         end
     end)
