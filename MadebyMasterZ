@@ -9,7 +9,7 @@ Library.ShowToggleFrameInKeybinds = true
 
 local Window = Library:CreateWindow({
     Title = "Minimal Bot - FiestaGuardVip",
-    Footer = "v1.0",
+    Footer = "v11.0",
     Icon = 0,
     NotifySide = "Right",
     ShowCustomCursor = true,
