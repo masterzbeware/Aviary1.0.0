@@ -20,9 +20,10 @@ local Tabs = {
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TextChatService = game:GetService("TextChatService")
+local PathfindingService = game:GetService("PathfindingService")
 
 local localPlayer = Players.LocalPlayer
-local clientName = "FiestaGuardVip" -- langsung set client name
+local clientName = "FiestaGuardVip" -- nama client utama
 local jarakIkut = 5
 local toggleAktif = false
 local followAllowed = false
@@ -59,8 +60,41 @@ end
 local function runStopCommand()
     followAllowed = false
     currentFormasiTarget = nil
+    humanoid:MoveTo(myRootPart.Position) -- berhenti
     debugPrint("Follow stopped")
     Library:Notify("Bot Follow Stopped", 3)
+end
+
+-- ✅ Pathfinding Function
+local isMoving = false
+local function moveToTarget(destination)
+    if not humanoid or not myRootPart then return end
+    if isMoving then return end -- biar gak spam path
+    isMoving = true
+
+    local path = PathfindingService:CreatePath({
+        AgentRadius = 2,
+        AgentHeight = 5,
+        AgentCanJump = true,
+        AgentJumpHeight = 10,
+        AgentMaxSlope = 45,
+    })
+
+    path:ComputeAsync(myRootPart.Position, destination)
+
+    if path.Status == Enum.PathStatus.Complete then
+        local waypoints = path:GetWaypoints()
+        for _, waypoint in ipairs(waypoints) do
+            humanoid:MoveTo(waypoint.Position)
+            humanoid.MoveToFinished:Wait()
+            if not followAllowed then break end
+        end
+    else
+        debugPrint("⚠️ Path failed, moving directly")
+        humanoid:MoveTo(destination)
+    end
+
+    isMoving = false
 end
 
 -- ✅ UI - Main Tab
@@ -72,7 +106,7 @@ GroupBox1:AddInput("BotIdentity", {
     Text = "Bot Identity",
     Placeholder = "Auto-detected bot info",
     Callback = function(Value)
-        -- readonly, tidak ada perubahan
+        -- readonly
     end,
 })
 
@@ -120,7 +154,6 @@ function setupBotFollowSystem()
         if msg:match("^!ikuti") then
             followAllowed = true
             currentFormasiTarget = client
-            Options.TextboxDisplayName:SetValue("")
             Library:Notify("Bot following main client: " .. client.DisplayName, 3)
             debugPrint("Follow started for "..client.DisplayName)
         elseif msg:match("^!stop") then
@@ -129,10 +162,7 @@ function setupBotFollowSystem()
     end
 
     local function setupClient(player)
-        if player.Name ~= clientName then
-            debugPrint("Player "..player.Name.." is not the client")
-            return
-        end
+        if player.Name ~= clientName then return end
         client = player
         debugPrint("Client "..player.Name.." setup complete")
 
@@ -144,7 +174,6 @@ function setupBotFollowSystem()
                     local senderUserId = message.TextSource and message.TextSource.UserId
                     local sender = senderUserId and Players:GetPlayerByUserId(senderUserId)
                     if sender and sender == client then
-                        debugPrint("Received chat from "..sender.Name..": "..message.Text)
                         handleCommand(message.Text)
                     end
                 end
@@ -152,7 +181,6 @@ function setupBotFollowSystem()
         else
             -- ✅ Fallback (Player.Chatted lama)
             followConnection = player.Chatted:Connect(function(msg)
-                debugPrint("Received chat from "..player.Name..": "..msg)
                 handleCommand(msg)
             end)
         end
@@ -177,11 +205,8 @@ function setupBotFollowSystem()
                 if targetHRP and followAllowed then
                     local followPos = targetHRP.Position - targetHRP.CFrame.LookVector * jarakIkut
                     local dist = (myRootPart.Position - followPos).Magnitude
-                    debugPrint("Distance to target: "..dist)
-                    if dist > 0.1 then
-                        myRootPart.CFrame = CFrame.lookAt(myRootPart.Position, targetHRP.Position)
-                        humanoid:MoveTo(followPos)
-                        debugPrint("Moving to "..tostring(followPos))
+                    if dist > 2 then
+                        moveToTarget(followPos) -- ✅ pakai pathfinding
                     end
                 end
             end)
